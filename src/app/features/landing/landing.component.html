@@ -2,15 +2,26 @@
   <header class="site-nav"><a class="brand" routerLink="/"><img class="brand-mark--light" src="assets/brand/products/svg/light/05-outreach.svg" alt=""><img class="brand-mark--dark" src="assets/brand/products/svg/dark/05-outreach.svg" alt=""><span>16Ahead <span class="brand-product">Outreach</span></span></a>
     <nav aria-label="Primary navigation"><a class="nav-cta" routerLink="/ios">Outreach for iOS <span aria-hidden="true">↗</span></a><a class="nav-open" routerLink="/app">Open Outreach <span aria-hidden="true">→</span></a></nav>
   </header>
-  <section class="hero">
+  <section class="hero" [class.hero--tour]="inlinePlaying">
     <div class="hero-copy">
       <p class="eyebrow">A calmer way to follow up</p>
       <h1>Turn every signal into a <em>next move</em></h1>
       <p class="hero-lead">Outreach helps you plan the right message, notice who is leaning in, and keep the conversation moving without living in your inbox.</p>
-      <div class="hero-actions"><a class="button button-primary" routerLink="/get-started">Get started <span aria-hidden="true">→</span></a><a class="button button-surface" routerLink="/ios">See Outreach for iOS <span aria-hidden="true">→</span></a></div><a class="text-link hero-how" href="#proof">See how it works <span aria-hidden="true">↓</span></a>
+      <div class="hero-actions"><a class="button button-primary" routerLink="/get-started">Get started <span aria-hidden="true">→</span></a><a class="button button-surface" routerLink="/ios">See Outreach for iOS <span aria-hidden="true">→</span></a></div><button type="button" class="text-link hero-how hero-tour" (click)="openTour($event)" data-cy="landing-watch-tour"><span class="hero-tour__icon" aria-hidden="true">▶</span>{{ tourWatched ? 'Watch again' : 'Watch the tour' }} <span class="hero-tour__len">0:42</span></button>
       <p class="made-by"><a href="https://16ahead.com" target="_blank" rel="noopener"><span class="made-by__todd"><img src="assets/find/entities/todd/logo-bw-icon.png" alt="" width="20" height="20"></span>Powered by <strong>16Ahead</strong></a><i aria-hidden="true"></i><a appAlsoFromUs></a></p>
     </div>
-    <div class="hero-art"><img src="assets/outreach-banner.png" alt="A visual representation of an active Outreach campaign"></div>
+    <div class="hero-art">
+      <div class="tour" [class.tour--playing]="inlinePlaying">
+        <video #inlineVideo class="tour__video" src="video/outreach-tour.mp4" poster="video/outreach-tour-poster.jpg" muted playsinline preload="none" aria-hidden="true" tabindex="-1" (playing)="inlinePlaying = true" (pause)="inlinePlaying = false" (ended)="onInlineEnded()"></video>
+        <button type="button" class="tour__open" (click)="openTour($event)" [attr.aria-label]="tourWatched ? 'Watch the Outreach tour again, full screen' : 'Watch the Outreach tour, full screen'">
+          <span class="tour__chip" aria-hidden="true">
+            <ng-container *ngIf="inlinePlaying; else idleChip">⤢ Full screen</ng-container>
+            <ng-template #idleChip>▶ {{ tourWatched ? 'Watch again' : 'Watch the tour' }}</ng-template>
+          </span>
+        </button>
+        <button type="button" class="tour__skip" *ngIf="inlinePlaying" (click)="skipTour()" data-cy="landing-skip-tour">Skip <span aria-hidden="true">✕</span></button>
+      </div>
+    </div>
   </section>
   <section class="signal-strip" aria-label="Outreach value proposition"><span>Plan with intention</span><i></i><span>Read the room</span><i></i><span>Follow through</span></section>
   <section class="proof section" id="proof">
@@ -63,4 +74,8 @@
     <div class="closing-actions"><a class="button button-light" routerLink="/ios">Explore Outreach for iOS <span aria-hidden="true">→</span></a><a class="button button-outline-light" routerLink="/pricing" data-cy="landing-pricing">Pricing</a></div>
   </section>
 </main>
+<div class="tour-overlay" *ngIf="tourOpen" role="dialog" aria-modal="true" aria-label="Outreach tour" (click)="closeTour()">
+  <video #fullVideo class="tour-overlay__video" src="video/outreach-tour.mp4" poster="video/outreach-tour-poster.jpg" controls playsinline preload="auto" (click)="$event.stopPropagation()" (ended)="onFullEnded()"></video>
+  <button #closeButton type="button" class="tour-overlay__close" (click)="closeTour()" aria-label="Close video" data-cy="landing-close-tour">✕</button>
+</div>
 <app-site-footer></app-site-footer>

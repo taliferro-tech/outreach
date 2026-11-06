@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, OnDestroy, ViewChild } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { SiteFooterComponent } from '../../shared/site-footer/site-footer.component';
 import { AlsoFromUsComponent } from '../../shared/also-from-us/also-from-us.component';
@@ -12,7 +12,22 @@ import { AlsoFromUsComponent } from '../../shared/also-from-us/also-from-us.comp
   templateUrl: './landing.component.html',
   styleUrl: './landing.component.css'
 } )
-export class LandingComponent implements AfterViewInit {
+export class LandingComponent implements AfterViewInit, OnDestroy {
+  /** The silent tour plays by itself in the hero; any tap opens it full screen. */
+  @ViewChild( 'inlineVideo' ) private inlineVideo?: ElementRef<HTMLVideoElement>;
+  @ViewChild( 'closeButton' ) set closeButton ( ref: ElementRef<HTMLButtonElement> | undefined ) { ref?.nativeElement.focus(); }
+  @ViewChild( 'fullVideo' ) set fullVideo ( ref: ElementRef<HTMLVideoElement> | undefined ) {
+    if ( !ref ) return;
+    const video = ref.nativeElement;
+    video.play().catch( () => { video.muted = true; video.play().catch( () => undefined ); } );
+  }
+
+  inlinePlaying = false;
+  tourOpen = false;
+  /** Set once someone has seen the whole tour, so the buttons read "Watch again". */
+  tourWatched = false;
+  private opener: HTMLElement | null = null;
+
   readonly metrics = [
     { value: '3×', label: 'more follow-up clarity', detail: 'One view for the message, the signal, and the next step.' },
     { value: '24/7', label: 'signal awareness', detail: 'Know what changed while you were away from your desk.' },
@@ -33,5 +48,66 @@ export class LandingComponent implements AfterViewInit {
     { question: 'Who is Outreach for?', answer: 'Outreach is for teams and operators who need consistent, thoughtful follow-up without manually watching every contact and campaign.' }
   ];
 
-  ngAfterViewInit (): void { if ( typeof window !== 'undefined' ) window.scrollTo( 0, 0 ); }
+  ngAfterViewInit (): void {
+    if ( typeof window === 'undefined' ) return;
+    window.scrollTo( 0, 0 );
+    this.autoplayInline();
+  }
+
+  ngOnDestroy (): void { this.unlockScroll(); }
+
+  openTour ( event: Event ): void {
+    this.opener = event.currentTarget as HTMLElement | null;
+    this.inlineVideo?.nativeElement.pause();
+    this.tourOpen = true;
+    document.documentElement.style.overflow = 'hidden';
+  }
+
+  @HostListener( 'document:keydown.escape' )
+  closeTour (): void {
+    if ( !this.tourOpen ) return;
+    this.tourOpen = false;
+    this.unlockScroll();
+    this.opener?.focus();
+  }
+
+  onFullEnded (): void {
+    this.tourWatched = true;
+    this.closeTour();
+  }
+
+  /** Ends the hero takeover early and brings the headline back. */
+  skipTour (): void {
+    this.inlinePlaying = false;
+    this.inlineVideo?.nativeElement.pause();
+    this.inlineVideo?.nativeElement.load();
+  }
+
+  /** Back to the poster, ready for "Watch again". */
+  onInlineEnded (): void {
+    this.inlinePlaying = false;
+    this.tourWatched = true;
+    this.inlineVideo?.nativeElement.load();
+  }
+
+  /**
+   * Browsers (Safari included) autoplay video only when it is muted. The tour
+   * has no sound, so it can start by itself — except for people who asked for
+   * reduced motion or data savings, and in iOS Low Power Mode, where play()
+   * rejects. Those visitors see the poster and the play button.
+   */
+  private autoplayInline (): void {
+    const video = this.inlineVideo?.nativeElement;
+    if ( !video ) return;
+    const reduceMotion = window.matchMedia?.( '(prefers-reduced-motion: reduce)' ).matches;
+    const saveData = ( navigator as Navigator & { connection?: { saveData?: boolean } } ).connection?.saveData;
+    if ( reduceMotion || saveData ) return;
+    video.muted = true;
+    video.preload = 'auto';
+    video.play().catch( () => undefined );
+  }
+
+  private unlockScroll (): void {
+    if ( typeof document !== 'undefined' ) document.documentElement.style.overflow = '';
+  }
 }

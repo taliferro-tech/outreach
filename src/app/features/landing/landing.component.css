@@ -313,3 +313,209 @@ footer { display:flex; align-items:center; justify-content:space-between; gap:1r
   margin: 0;
   padding: 0 24px 22px;
 }
+
+/* ---- Product tour video (hero slot + full-screen player) ---- */
+.hero-art .tour {
+  position: relative;
+  width: min(100%, 680px);
+  aspect-ratio: 16 / 9;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #eef0f3;
+  box-shadow: 0 24px 48px color-mix(in srgb, var(--text) 18%, transparent), 0 0 0 1px var(--surface2);
+}
+
+.tour__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The whole frame is the button: tap anywhere to watch full screen. */
+.tour__open {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: color-mix(in srgb, #0b1220 22%, transparent);
+  cursor: pointer;
+  transition: background .2s ease;
+}
+
+.tour__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font: 700 16px/1 var(--font);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .25);
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+/* While it plays: clear the frame, tuck a small "Full screen" chip in the corner. */
+.tour--playing .tour__open {
+  place-items: end;
+  padding: 14px;
+  background: transparent;
+}
+
+.tour--playing .tour__chip {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  background: rgba(11, 18, 32, .72);
+  opacity: 0;
+}
+
+.tour--playing:hover .tour__chip,
+.tour__open:focus-visible .tour__chip {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .tour--playing .tour__chip { opacity: 1; }
+}
+
+.tour__open:hover .tour__chip { transform: scale(1.04); }
+
+.tour__open:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: -3px;
+}
+
+.hero-tour {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hero-tour__icon {
+  margin: 0 8px 0 0 !important;
+  font-size: .8em;
+}
+
+.hero-tour__len {
+  margin-left: 6px !important;
+  color: var(--muted) !important;
+  font-weight: 500;
+}
+
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10010; /* above the floating Menu (10002) */
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+
+.tour-overlay__video {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  object-fit: contain;
+}
+
+.tour-overlay__close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .16);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.tour-overlay__close:hover,
+.tour-overlay__close:focus-visible {
+  background: rgba(255, 255, 255, .3);
+}
+
+/* Skip only shows during the desktop takeover below. */
+.tour__skip { display: none; }
+
+/*
+ * Desktop takeover: while the tour plays by itself it fills the whole hero,
+ * edge to edge, so the product screens are readable. The headline fades back
+ * when it ends or the visitor skips. The video's own soft grey background
+ * continues into the bars around it, so the frame looks seamless.
+ * Phones keep the inline card, which is already full width there.
+ */
+@media (min-width: 801px) {
+  .hero { position: relative; }
+  .hero-copy { transition: opacity .5s ease; }
+  .hero--tour .hero-copy { opacity: 0; pointer-events: none; }
+  .hero--tour .hero-art { position: static; }
+  .hero--tour .hero-art::before { opacity: 0; }
+
+  .hero--tour .hero-art .tour {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    aspect-ratio: auto;
+    border-radius: 0;
+    background: #e9eaef; /* the video's own edge colour */
+    box-shadow: none;
+    animation: tour-in .5s ease;
+  }
+
+  .hero--tour .tour__video { object-fit: contain; }
+
+  .hero--tour .tour__open { padding: 24px 32px; }
+  .hero--tour .tour__chip { opacity: 1; }
+
+  .tour__skip {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(11, 18, 32, .72);
+    color: #fff;
+    font: 700 13px/1 var(--font);
+    cursor: pointer;
+  }
+
+  .tour__skip:hover,
+  .tour__skip:focus-visible { background: rgba(11, 18, 32, .9); }
+}
+
+@keyframes tour-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero--tour .hero-art .tour { animation: none; }
+}
+
+@media (max-width: 800px) {
+  .hero-art .tour { width: 100%; border-radius: 14px; }
+  .tour__chip { height: 44px; padding: 0 18px; font-size: 15px; }
+}
