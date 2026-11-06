@@ -20,7 +20,7 @@ describe('Mail pages', () => {
       strategySummary: 'He clicked the link 8 times but has not replied.',
     },
     {
-      id: 'willy', contactId: 'willy', contactName: 'Willy Gevers', companyName: 'Gevers Wealth', userLane: 'drafts',
+      id: 'willy', contactId: 'willy', contactName: 'Willy Gevers', companyName: 'Gevers Wealth', userLane: 'drafts', origin: 'maya',
       touchCount: 0, openCount: 0, clickCount: 0, lastUpdated: hours(-72),
       draftSubject: 'Quick chat about client acquisition',
       // Stored before the AI footer was removed (2026-10-31): Drafts must not show it.
@@ -130,6 +130,63 @@ describe('Mail pages', () => {
     cy.contains('.mail-toast', "Deleted 1 draft. 1 couldn't be deleted and are still checked.");
     cy.get('[data-cy="draft-check-theo"]').should('be.checked');
     cy.get('[data-cy="drafts-selectbar"]').should('contain', '1 selected');
+  });
+
+  // Email templates step 3 (2026-11-06): the Marketing Assistant's emails go out in Personal note; Select > Template changes it.
+  it('labels the Marketing Assistant\'s email Personal note, and See it as sent shows it in the template', () => {
+    cy.intercept({ method: 'POST', pathname: '/api/outreach/momentum-threads/willy/template-preview' }, {
+      statusCode: 200,
+      body: { success: true, data: { subject: 'Quick chat about client acquisition', html: '<html><body><p>Hi Willy, a quick question.</p><p>Gevers Wealth · 1 Main St</p></body></html>', templateId: 'personal-note', source: 'default', stale: false, fellBack: '' } },
+    }).as('preview');
+    cy.loginAsTestUser('/drafts');
+    cy.wait('@bootstrap', { timeout: 20000 });
+    cy.get('[data-cy="draft-template-willy"]').should('have.text', 'Personal note');
+    cy.get('[data-cy="draft-template-theo"]').should('not.exist');
+    cy.get('[data-cy="draft-preview-willy"]').click();
+    cy.wait('@preview');
+    cy.get('[data-cy="drafts-preview"]').should('contain', 'To Willy Gevers').and('contain', 'Quick chat about client acquisition');
+    // Sandboxed (no same-origin), so check what it was given rather than reaching inside.
+    cy.get('[data-cy="drafts-preview-frame"]').should('have.attr', 'srcdoc').and('contain', '1 Main St');
+    cy.get('[data-cy="drafts-preview"]').find('[aria-label="Close"]').click();
+    cy.get('[data-cy="drafts-preview"]').should('not.exist');
+  });
+
+  it('Select > Template applies a designed template to the checked drafts, skipping replies', () => {
+    cy.intercept({ method: 'POST', pathname: '/api/outreach/momentum-threads/*/template' }, (req) => {
+      req.reply({ statusCode: 200, body: { success: true, data: { contactId: 'x', draftTemplate: { templateId: req.body.templateId }, needs: [] } } });
+    }).as('template');
+    cy.loginAsTestUser('/drafts');
+    cy.wait('@bootstrap', { timeout: 20000 });
+    cy.get('[data-cy="drafts-select"]').click();
+    cy.get('[data-cy="drafts-select-all"]').click();
+    cy.get('[data-cy="drafts-template-selected"]').should('contain', 'Template 3').click();
+    cy.get('[data-cy="drafts-template-choice"]').should('contain', 'Send 3 drafts in');
+    cy.get('[data-cy="drafts-template-personal-note"]').should('have.attr', 'aria-checked', 'true');
+    cy.get('[data-cy="drafts-template-promotion"]').click().should('have.attr', 'aria-checked', 'true');
+    cy.get('[data-cy="drafts-template-choice"]').should('contain', 'A sale or offer with a code.');
+    cy.get('[data-cy="drafts-template-apply"]').click();
+    cy.wait(['@template', '@template']);
+    cy.get('@template.all').should('have.length', 2).then((calls: any) => {
+      expect(calls.map((call: any) => call.request.body.templateId)).to.deep.equal(['promotion', 'promotion']);
+      expect(calls.map((call: any) => call.request.url).join(' ')).not.to.contain('/laurie/');
+    });
+    cy.contains('.mail-toast', '2 drafts will go out as Promotion.').and('contain', '1 draft is a reply, which stay as written.');
+    cy.get('[data-cy="drafts-selectbar"]').should('not.exist');
+  });
+
+  it('Select > Template says what the profile needs when templates can\'t be used yet', () => {
+    cy.intercept({ method: 'POST', pathname: '/api/outreach/momentum-threads/*/template' }, {
+      statusCode: 400, body: { success: false, error: 'brand_incomplete', message: 'Add a mailing address in your profile. Marketing email must show one. Then templates can be used.' },
+    }).as('template');
+    cy.loginAsTestUser('/drafts');
+    cy.wait('@bootstrap', { timeout: 20000 });
+    cy.get('[data-cy="drafts-select"]').click();
+    cy.get('[data-cy="draft-check-willy"]').check();
+    cy.get('[data-cy="drafts-template-selected"]').click();
+    cy.get('[data-cy="drafts-template-apply"]').click();
+    cy.wait('@template');
+    cy.get('[data-cy="drafts-template-error"]').should('contain', 'Add a mailing address').find('a').should('have.attr', 'href', 'https://app.16ahead.com/update-profile');
+    cy.get('[data-cy="draft-check-willy"]').should('be.checked');
   });
 
   it('Read full email opens the whole message', () => {

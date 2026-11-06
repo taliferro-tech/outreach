@@ -675,6 +675,18 @@ export class OutreachApiService {
     return this.http.post<{ success: boolean; message: string; data: { recipientEmail: string; subject: string; }; }>( `${this.baseUrl}/outreach/momentum-threads/${encodeURIComponent( contactId )}/send-draft-test`, payload, { headers } );
   }
 
+  /** Drafts > Apply template: "none", "personal-note", or a designed template the AI fills from the draft. */
+  applyMomentumDraftTemplate ( contactId: string, templateId: string, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { contactId: string; draftTemplate: { templateId: string; bodyHash?: string; }; needs: string[]; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.post<{ success: boolean; data: { contactId: string; draftTemplate: { templateId: string; bodyHash?: string; }; needs: string[]; }; }>( `${this.baseUrl}/outreach/momentum-threads/${encodeURIComponent( contactId )}/template`, { templateId }, { headers } );
+  }
+
+  /** The draft as it will go out: in its template, or plain. */
+  previewMomentumDraftTemplate ( contactId: string, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { subject: string; html: string; templateId: string | null; source: string | null; stale: boolean; fellBack: string; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.post<{ success: boolean; data: { subject: string; html: string; templateId: string | null; source: string | null; stale: boolean; fellBack: string; }; }>( `${this.baseUrl}/outreach/momentum-threads/${encodeURIComponent( contactId )}/template-preview`, {}, { headers } );
+  }
+
   // Plain reject - discards the current draft with no rewrite attempt (distinct
   // from rejectMomentumDraft, which always has Maya try again).
   discardMomentumDraft ( contactId: string, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<MomentumThreadResponse> {

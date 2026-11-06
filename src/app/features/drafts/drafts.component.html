@@ -74,6 +74,7 @@
           <span class="tag">{{ card.kindPill }}</span>
           <span class="tag" *ngIf="card.signalPill as signal" [attr.data-tint]="signal.tint">{{ signal.text }}</span>
           <span class="tag" *ngIf="card.heldUntil" data-tint="pink" [attr.data-cy]="'draft-held-' + card.id">Held until {{ card.heldUntil }}</span>
+          <span class="tag" *ngIf="card.templateLabel" data-tint="violet" title="The template this email goes out in" [attr.data-cy]="'draft-template-' + card.id">{{ card.templateLabel }}</span>
         </div>
       </div>
 
@@ -82,9 +83,12 @@
         <strong class="draft__subject">{{ card.subject }}</strong>
         <div class="draft__body" [class.is-open]="expanded.has(card.id)" [innerHTML]="card.bodyHtml"></div>
         <p class="muted draft__sig" *ngIf="expanded.has(card.id)">Your signature is added when it sends.</p>
-        <button type="button" class="draft__more" (click)="toggleExpanded(card)" [attr.aria-expanded]="expanded.has(card.id)">
-          {{ expanded.has(card.id) ? 'Show less' : 'Read full email' }}
-        </button>
+        <div class="draft__links">
+          <button type="button" class="draft__more" (click)="toggleExpanded(card)" [attr.aria-expanded]="expanded.has(card.id)">
+            {{ expanded.has(card.id) ? 'Show less' : 'Read full email' }}
+          </button>
+          <button type="button" class="draft__more" (click)="openPreview(card)" [attr.data-cy]="'draft-preview-' + card.id">See it as sent</button>
+        </div>
       </section>
 
       <p class="draft__why" *ngIf="card.why"><strong>Why the Marketing Assistant wrote this</strong> <span class="muted">{{ card.why }}</span></p>
@@ -129,6 +133,10 @@
         <span class="spinner" *ngIf="bulkWorking === 'discard'" aria-hidden="true"></span>
         {{ bulkWorking === 'discard' ? 'Deleting…' : 'Delete ' + checkedCount }}
       </button>
+      <button type="button" class="pill pill--40" appWriteAction="change these drafts' template" [disabled]="!checkedRewritable || !!bulkWorking" (click)="openTemplateChoice()" data-cy="drafts-template-selected">
+        <span class="spinner" *ngIf="bulkWorking === 'template'" aria-hidden="true"></span>
+        {{ bulkWorking === 'template' ? 'Applying…' : 'Template ' + checkedRewritable }}
+      </button>
       <button type="button" class="pill pill--40" appWriteAction="rewrite these drafts" [disabled]="!checkedRewritable || !!bulkWorking" (click)="confirmBulk = 'rewrite'" data-cy="drafts-rewrite-selected">
         <span class="spinner" *ngIf="bulkWorking === 'rewrite'" aria-hidden="true"></span>
         {{ bulkWorking === 'rewrite' ? 'Queuing…' : 'Rewrite ' + checkedRewritable }}
@@ -139,6 +147,20 @@
       </button>
     </ng-container>
     <ng-template #bulkConfirm>
+      <div class="drafts-template" *ngIf="confirmBulk === 'template'; else otherConfirm" data-cy="drafts-template-choice">
+        <strong>Send {{ checkedRewritable }} {{ checkedRewritable === 1 ? 'draft' : 'drafts' }} in</strong>
+        <div class="drafts-template__choices" role="radiogroup" aria-label="Template">
+          <button type="button" *ngFor="let choice of templateChoices" class="chip" role="radio" [attr.aria-checked]="pickedTemplate === choice.id" (click)="pickTemplate(choice.id)" [attr.data-cy]="'drafts-template-' + choice.id">{{ choice.label }}</button>
+        </div>
+        <span class="muted">{{ pickedTemplateDetail }}</span>
+        <p class="error" *ngIf="templateError" role="alert" data-cy="drafts-template-error">{{ templateError }} <a [href]="profileUrl" target="_blank" rel="noopener">Open your profile</a></p>
+        <div class="drafts-template__actions">
+          <button type="button" class="pill pill--40" (click)="confirmBulk = null">Cancel</button>
+          <button type="button" class="pill pill--40 pill--primary" (click)="runBulk('template')" data-cy="drafts-template-apply">Apply</button>
+        </div>
+      </div>
+    </ng-template>
+    <ng-template #otherConfirm>
       <span *ngIf="confirmBulk === 'approve'" data-cy="drafts-confirm-text">
         Approve & send {{ checkedApprovable }} {{ checkedApprovable === 1 ? 'draft' : 'drafts' }}? Replies send right away; new emails go to Outbox and send during each person's business hours.
         <ng-container *ngIf="checkedCount > checkedApprovable">{{ checkedCount - checkedApprovable }} held or being rewritten stay here.</ng-container>
@@ -151,6 +173,23 @@
         {{ confirmBulk === 'approve' ? 'Yes, approve & send' : confirmBulk === 'rewrite' ? 'Yes, rewrite' : 'Yes, delete' }}
       </button>
     </ng-template>
+  </div>
+
+  <!-- See it as sent: the email in the template it goes out in (2026-11-06). -->
+  <div class="drafts-preview" *ngIf="preview as p" (click)="closePreview()">
+    <section class="drafts-preview__sheet" role="dialog" aria-labelledby="drafts-preview-title" (click)="$event.stopPropagation()" data-cy="drafts-preview">
+      <header class="drafts-preview__head">
+        <div>
+          <h2 id="drafts-preview-title">To {{ p.name }}</h2>
+          <span class="muted">{{ p.subject }}</span>
+        </div>
+        <button type="button" class="pill pill--square" (click)="closePreview()" aria-label="Close">✕</button>
+      </header>
+      <p class="muted drafts-preview__note" *ngIf="p.note" data-cy="drafts-preview-note">{{ p.note }}</p>
+      <p class="error" *ngIf="p.error" role="alert">{{ p.error }}</p>
+      <div class="drafts-preview__loading" *ngIf="p.loading"><span class="spinner" aria-hidden="true"></span> Putting it together…</div>
+      <iframe *ngIf="p.html" [srcdoc]="p.html" title="The email as it will be sent" sandbox="allow-popups" data-cy="drafts-preview-frame"></iframe>
+    </section>
   </div>
 
   <app-mail-toast [toast]="toast" (closed)="toast = null" (action)="undoDiscard()"></app-mail-toast>

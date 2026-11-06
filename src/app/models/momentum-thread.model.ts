@@ -246,6 +246,10 @@ export interface MomentumThread {
 
     draftSubject?: string;
     draftBody?: string;
+    /** Drafts > Apply template (2026-11-06): which template the email goes out in; designed ones carry the draft's bodyHash. */
+    draftTemplate?: { templateId?: string; bodyHash?: string; } | null;
+    sendVia?: string;
+    mailboxId?: string;
     /** Set on drafts that should wait in Needs You for the user's OK. */
     approvalRequested?: boolean;
     approvalSource?: string;

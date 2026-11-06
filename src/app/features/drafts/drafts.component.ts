@@ -15,6 +15,9 @@ import { MailToast, MailToastComponent } from '../../shared/mail/mail-toast.comp
 import { firstName, sendTimeLabel, sinceLabel } from '../../shared/mail/mail-time.util';
 import { stripAiFooter } from '../../shared/mail/ai-footer.util';
 import { scrubEmailHtml } from '../../shared/utils/email-html.util';
+import { DRAFT_TEMPLATE_CHOICES, DraftTemplateId, applyTemplateToast, draftTemplateId, draftTemplateLabel } from './draft-template.util';
+
+export const PROFILE_URL = 'https://app.16ahead.com/update-profile';
 
 type DraftKind = 'outbound' | 'reply';
 
@@ -47,6 +50,18 @@ interface DraftCard {
   sendLine: string;
   /** The auto-send setting will send it without you. */
   sendsByItself: boolean;
+  /** The template it goes out in ("Personal note"), or "" for a plain email. */
+  templateLabel: string;
+}
+
+interface DraftPreview {
+  name: string;
+  subject: string;
+  html: SafeHtml | null;
+  loading: boolean;
+  error: string;
+  /** Why it looks the way it does, when that isn't obvious. */
+  note: string;
 }
 
 const REWRITE_POLL_MS = 5000;
@@ -120,8 +135,19 @@ export class DraftsComponent implements OnInit, OnDestroy {
   checkedApprovable = 0;
   checkedRewritable = 0;
   allChecked = false;
-  confirmBulk: 'approve' | 'discard' | 'rewrite' | null = null;
-  bulkWorking: 'approve' | 'discard' | 'rewrite' | null = null;
+  confirmBulk: 'approve' | 'discard' | 'rewrite' | 'template' | null = null;
+  bulkWorking: 'approve' | 'discard' | 'rewrite' | 'template' | null = null;
+
+  /** Apply template (2026-11-06): the choices, the one picked, and what it does. */
+  readonly templateChoices = DRAFT_TEMPLATE_CHOICES;
+  readonly profileUrl = PROFILE_URL;
+  pickedTemplate: DraftTemplateId = 'personal-note';
+  pickedTemplateDetail = DRAFT_TEMPLATE_CHOICES[0].detail;
+  /** The workspace can't use templates yet (no mailing address): said in the select bar. */
+  templateError = '';
+  /** "See it as sent": the email in its template, from the server. */
+  preview: DraftPreview | null = null;
+  private previewSeq = 0;
 
   ngOnInit (): void {
     this.auth.isLoggedIn().pipe( take( 1 ) ).subscribe( ( signedIn ) => {
@@ -252,6 +278,7 @@ export class DraftsComponent implements OnInit, OnDestroy {
       heldUntil,
       replied,
       sendsByItself,
+      templateLabel: draftTemplateLabel( draftTemplateId( thread, kind === 'reply' ) ),
       sendLine: this.autoSend && this.autoSend.mode !== 'off' && kind === 'outbound' && !replied ?
         autoSendLine( sendsByItself, first, heldUntil, this.autoSend.mode, String( thread.mayaApprovalReleaseAt || '' ) ) :
         sendLine( kind, replied, first, heldUntil ),
@@ -395,10 +422,11 @@ export class DraftsComponent implements OnInit, OnDestroy {
     return !card.heldUntil && !card.rewriting && !this.working.has( card.id );
   }
 
-  /** Approve & send, Delete or Rewrite on the checked drafts, after the select bar's confirm. */
-  async runBulk ( action: 'approve' | 'discard' | 'rewrite' ): Promise<void> {
+  /** Approve & send, Delete, Rewrite or Apply template on the checked drafts, after the select bar's confirm. */
+  async runBulk ( action: 'approve' | 'discard' | 'rewrite' | 'template' ): Promise<void> {
     if ( this.bulkWorking ) return;
     if ( action === 'rewrite' ) return this.rewriteChecked();
+    if ( action === 'template' ) return this.applyTemplateChecked();
     const checked = this.cards.filter( ( card ) => this.checkedIds.has( card.id ) );
     const cards = action === 'approve' ? checked.filter( ( card ) => this.approvable( card ) ) : checked;
     if ( !cards.length ) return;
@@ -459,6 +487,85 @@ export class DraftsComponent implements OnInit, OnDestroy {
       ? { text: `The Marketing Assistant is rewriting ${ drafts( done ) }. ${ failed.length } couldn't be queued and are still checked.` }
       : { text: `The Marketing Assistant is rewriting ${ drafts( done ) }. ${ pace }` };
     await this.load( true );
+  }
+
+  pickTemplate ( id: DraftTemplateId ): void {
+    this.pickedTemplate = id;
+    this.pickedTemplateDetail = DRAFT_TEMPLATE_CHOICES.find( ( choice ) => choice.id === id )?.detail || '';
+  }
+
+  openTemplateChoice (): void {
+    this.templateError = '';
+    this.confirmBulk = 'template';
+  }
+
+  /**
+   * The checked drafts go out in the picked template (todd-backend
+   * draftTemplate.controller.js). Personal note and No template are instant;
+   * a designed template is filled from each draft by the AI, four at a time.
+   * Replies can't take a designed one and are skipped.
+   */
+  private async applyTemplateChecked (): Promise<void> {
+    const choice = DRAFT_TEMPLATE_CHOICES.find( ( item ) => item.id === this.pickedTemplate ) || DRAFT_TEMPLATE_CHOICES[0];
+    const checked = this.cards.filter( ( card ) => this.checkedIds.has( card.id ) && !card.rewriting && !this.working.has( card.id ) );
+    const skipped = choice.filled ? checked.filter( ( card ) => card.kind === 'reply' ) : [];
+    const cards = checked.filter( ( card ) => !skipped.includes( card ) );
+    if ( !checked.length ) return;
+    this.commitDiscard();
+    this.confirmBulk = null;
+    this.templateError = '';
+    this.bulkWorking = 'template';
+    let blanks = 0;
+    let brandProblem = '';
+    const call = ( card: DraftCard ) => this.api.applyMomentumDraftTemplate( card.id, choice.id, this.opts ).pipe(
+      map( ( response ) => {
+        if ( response?.data?.needs?.length ) blanks += 1;
+        return response;
+      } ),
+      catchError( ( error: any ) => {
+        if ( error?.error?.error === 'brand_incomplete' ) brandProblem = String( error.error.message || '' );
+        throw error;
+      } ),
+    );
+    const failed = await this.eachFourAtATime( cards, call );
+    this.bulkWorking = null;
+    if ( brandProblem && failed.length === cards.length ) {
+      // Nothing can use a template until the profile has an address: say so where they're looking.
+      this.templateError = brandProblem;
+      this.confirmBulk = 'template';
+      return;
+    }
+    this.checkedIds = new Set( failed );
+    if ( !failed.length ) this.selecting = false;
+    this.syncChecked();
+    this.toast = { text: applyTemplateToast( choice.label, cards.length - failed.length, skipped.length, failed.length, blanks ) };
+    await this.load( true );
+  }
+
+  /** "See it as sent": the email in the template it goes out in, as the server will send it. */
+  async openPreview ( card: DraftCard ): Promise<void> {
+    const seq = ++this.previewSeq;
+    this.preview = { name: card.name, subject: card.subject, html: null, loading: true, error: '', note: '' };
+    try {
+      const response = await firstValueFrom( this.api.previewMomentumDraftTemplate( card.id, this.opts ) );
+      if ( seq !== this.previewSeq || !this.preview ) return;
+      const data = response.data;
+      this.preview = {
+        ...this.preview,
+        loading: false,
+        subject: data.subject || card.subject,
+        html: this.sanitizer.bypassSecurityTrustHtml( data.html || '' ),
+        note: previewNote( data.templateId, data.fellBack, data.stale ),
+      };
+    } catch ( error: any ) {
+      if ( seq !== this.previewSeq || !this.preview ) return;
+      this.preview = { ...this.preview, loading: false, error: String( error?.error?.message || error?.message || 'Unable to show this email.' ) };
+    }
+  }
+
+  closePreview (): void {
+    this.previewSeq += 1;
+    this.preview = null;
   }
 
   /** Runs call on every card, four at a time; resolves with the ids that failed. */
@@ -585,6 +692,15 @@ export class DraftsComponent implements OnInit, OnDestroy {
     }
     this.cardError.set( card.id, String( error?.error?.message || error?.message || fallback ) );
   }
+}
+
+/** Under "See it as sent": why it's plain, or that a template was for an earlier version. */
+export function previewNote ( templateId: string | null, fellBack: string, stale: boolean ): string {
+  if ( fellBack === 'brand_incomplete' ) return 'This goes out as a plain email until your profile has your company name and mailing address.';
+  if ( fellBack ) return 'The template couldn\'t be used for this one, so it goes out as a plain email.';
+  if ( stale ) return 'The template you picked was filled from an earlier version of this draft, so it goes out in Personal note. Apply the template again to refill it.';
+  if ( !templateId ) return 'This goes out as a plain email.';
+  return '';
 }
 
 /** The header: with auto-send on, how many go by themselves and why the rest wait. */
