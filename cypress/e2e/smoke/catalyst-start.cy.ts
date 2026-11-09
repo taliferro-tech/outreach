@@ -31,6 +31,15 @@ describe( 'Catalyst start date and time', () => {
     cy.get( '[data-cy="catalyst-auto-send-note"]' ).should( 'contain.text', 'Off: Catalyst stops on each email' );
   } );
 
+  // Says what's about to happen before Start (Ty, 2026-11-09): the page sends or queues the run itself.
+  it( 'explains each kind of run before it starts', () => {
+    cy.get( '[data-cy="catalyst-leave-notice"]' ).should( 'contain.text', 'How a Right away run works' ).and( 'contain.text', 'stops on every email' );
+    cy.get( '.send__toggle input' ).click();
+    cy.get( '[data-cy="catalyst-leave-notice"]' ).should( 'contain.text', 'without stopping' ).and( 'contain.text', 'Leaving stops the run' );
+    cy.get( '[data-cy="catalyst-start-later"]' ).click();
+    cy.get( '[data-cy="catalyst-leave-notice"]' ).should( 'contain.text', 'How a scheduled run works' ).and( 'contain.text', 'Send and queue the rest' ).and( 'contain.text', 'people' );
+  } );
+
   it( 'refuses a start in the past', () => {
     cy.get( '[data-cy="catalyst-start-later"]' ).click();
     cy.get( '[data-cy="catalyst-start-date"]' ).invoke( 'val', '2020-01-01' ).trigger( 'input' );

@@ -455,10 +455,28 @@ export class EmailerComponent implements OnInit, OnDestroy, AfterViewInit, OnCha
     if ( this.isRunning && this.autoRun ) {
       return { tone: 'warn', title: 'Sending from this page. Keep it open.', body: 'Each email is sent from this page as it is drafted. Leaving stops the run.' };
     }
-    if ( !this.isRunning && !this.showPreview && this.startMode === 'later' ) {
-      return { tone: 'info', title: 'How a scheduled run works', body: `1. Schedule shows you the first email. 2. Press "Send and queue the rest" on it. 3. Keep this page open while it queues everyone for ${ when } (a few minutes). 4. When it says all are queued, you can leave.` };
+    if ( this.isRunning || this.showPreview || !this.contacts?.length ) return null;
+    if ( this.startMode === 'later' ) {
+      return { tone: 'info', title: 'How a scheduled run works', body: `1. Schedule shows you the first email. 2. Press "Send and queue the rest" on it. 3. Keep this page open while it queues everyone for ${ when } (${ this.queueTimeEstimate }). 4. When it says all are queued, you can leave.` };
     }
-    return null;
+    if ( this.autoRun ) {
+      return { tone: 'info', title: 'How a Right away run works', body: `Start shows you the first email, then each email is sent from this page as soon as it's ready, without stopping (${ this.queueTimeEstimate }). Keep this page open and in front until the count is done. Leaving stops the run.` };
+    }
+    return { tone: 'info', title: 'How a Right away run works', body: 'Start shows you the first email. Catalyst stops on every email so you can read it and press Send, so it goes one at a time while you stay on this page. To send the rest without stopping, turn on Auto-send while open.' };
+  }
+
+  /**
+   * How long this page takes to queue or send the run. A template email
+   * takes about half a second each (Ty's 803-person run took about 6
+   * minutes, 2026-11-08); an email the Marketing Assistant writes for each
+   * person takes far longer, so that says so instead of guessing a number.
+   */
+  get queueTimeEstimate (): string {
+    const count = this.contacts?.length || 0;
+    const people = `${ count } ${ count === 1 ? 'person' : 'people' }`;
+    if ( !this.useTemplate ) return `each email is written for the person first, so ${ people } can take a while`;
+    const minutes = Math.max( 1, Math.round( count * 0.45 / 60 ) );
+    return `about ${ minutes } minute${ minutes === 1 ? '' : 's' } for ${ people }`;
   }
 
   /** Asks before leaving while the run still depends on this page. */
