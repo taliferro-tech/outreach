@@ -177,6 +177,8 @@ export const routes: Routes = [
     path: 'email-processor',
     loadComponent: () =>
       import( './features/email-processor/email-processor.component' ).then( ( m ) => m.EmailProcessorComponent ),
+    // Catalyst queues from the page; ask before leaving mid-run.
+    canDeactivate: [( component: { canLeave?: () => boolean } ) => component?.canLeave ? component.canLeave() : true],
   },
   {
     // First email: a draft per contact, then sent spaced out (design_handoff_outreach_onboarding 4).

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, ViewChild, ElementRef, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, ViewChild, ElementRef, AfterViewInit, HostListener, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LoggerService } from '../../../services/logger.service';
 import { OutreachInsightService } from '../../../services/outreach-insight.service';
@@ -433,8 +433,54 @@ export class EmailerComponent implements OnInit, OnDestroy, AfterViewInit, OnCha
     this.autoRun = this.autoRunBeforeSchedule;
   }
 
+  /** The start time of the last scheduled run ("Mon, Nov 9, 9:00 AM"); kept after it finishes for the "all queued" note. */
+  scheduledFor = '';
+
+  /**
+   * Catalyst queues from this page, one email at a time, so leaving stops it
+   * (Ty, 2026-11-08: Schedule looked like it handed the run off, and nothing
+   * said Send on the first email is what starts the queuing).
+   */
+  get leaveNotice (): { tone: 'info' | 'warn' | 'done'; title: string; body: string } | null {
+    const when = this.scheduledFor || this.startWhen || 'your start time';
+    if ( this.queueComplete && this.scheduledFor ) {
+      return { tone: 'done', title: `All ${ this.batchSentCount } queued for ${ when }.`, body: 'You can leave this page now. They go out on their own.' };
+    }
+    if ( this.scheduledRun && this.showPreview && this.batchSentCount === 0 ) {
+      return { tone: 'warn', title: 'Nothing is queued yet.', body: `Check this first email, then press "Send and queue the rest". Only then does this page start queuing everyone else for ${ when }.` };
+    }
+    if ( this.scheduledRun && this.isRunning ) {
+      return { tone: 'warn', title: `Queuing ${ this.batchSentCount } of ${ this.batchTotal } for ${ when }. Keep this page open.`, body: 'This page schedules each email one at a time. Keep it open and in front (its own window is safest) until it says all are queued. If you leave, the ones already queued still go, and the rest are not scheduled.' };
+    }
+    if ( this.isRunning && this.autoRun ) {
+      return { tone: 'warn', title: 'Sending from this page. Keep it open.', body: 'Each email is sent from this page as it is drafted. Leaving stops the run.' };
+    }
+    if ( !this.isRunning && !this.showPreview && this.startMode === 'later' ) {
+      return { tone: 'info', title: 'How a scheduled run works', body: `1. Schedule shows you the first email. 2. Press "Send and queue the rest" on it. 3. Keep this page open while it queues everyone for ${ when } (a few minutes). 4. When it says all are queued, you can leave.` };
+    }
+    return null;
+  }
+
+  /** Asks before leaving while the run still depends on this page. */
+  canLeave (): boolean {
+    if ( !this.isRunning ) return true;
+    const leave = window.confirm( this.scheduledRun
+      ? 'Catalyst is still queuing this run from this page. If you leave, the emails already queued still go, but the rest are not scheduled. Leave anyway?'
+      : 'Catalyst is still running from this page. Leaving stops it. Leave anyway?' );
+    if ( leave ) this.stopSendingEmails();
+    return leave;
+  }
+
+  @HostListener( 'window:beforeunload', ['$event'] )
+  onBeforeUnload ( event: BeforeUnloadEvent ): void {
+    if ( !this.isRunning ) return;
+    event.preventDefault();
+    event.returnValue = '';
+  }
+
   async onStart (): Promise<void> {
     if ( this.startProblem ) return;
+    this.scheduledFor = this.startMode === 'later' ? this.startWhen : '';
     if ( this.startMode === 'later' ) {
       this.autoRunBeforeSchedule = this.autoRun;
       this.scheduledRun = true;

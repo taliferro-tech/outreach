@@ -122,6 +122,11 @@ export class EmailProcessorComponent extends TopDogComponent {
 
   @ViewChild( EmailerComponent ) emailerComponent?: EmailerComponent;
 
+  /** The route's leave check: asks first while Catalyst is still queuing from this page. */
+  canLeave (): boolean {
+    return this.emailerComponent ? this.emailerComponent.canLeave() : true;
+  }
+
   processingCount: number = 25;
   /** The batch chips in "Choose who" (design 4l). */
   readonly batchSizes = [25, 50, 100, 250, 500, 1000, 2500];

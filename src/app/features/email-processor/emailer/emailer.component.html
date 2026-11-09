@@ -1,4 +1,9 @@
 <div class="emailer-panel">
+  <!-- Says that Catalyst queues from this page, and when it's safe to leave (Ty, 2026-11-08). -->
+  <div class="leave-notice" *ngIf="leaveNotice as notice" [attr.data-tone]="notice.tone" [attr.role]="notice.tone === 'warn' ? 'alert' : 'status'" data-cy="catalyst-leave-notice">
+    <strong>{{ notice.title }}</strong>
+    <span>{{ notice.body }}</span>
+  </div>
   <!-- Send column (design 4l) -->
   <div class="send">
     <div class="send__progress">
@@ -9,7 +14,7 @@
       <span class="send__state" *ngIf="queueComplete">Done</span>
     </div>
     <div class="send__count">
-      <b>{{ batchSentCount }}</b><span>/ {{ batchTotal }} sent</span>
+      <b>{{ batchSentCount }}</b><span>/ {{ batchTotal }} {{ scheduledFor ? 'queued' : 'sent' }}</span>
     </div>
     <div class="send__bar" role="progressbar" [attr.aria-valuenow]="batchProgress" aria-valuemin="0" aria-valuemax="100">
       <span [style.width.%]="batchProgress"></span>
@@ -191,6 +196,6 @@
         <i class="fa-solid" [ngClass]="isSendingTest ? 'fa-spinner fa-spin me-2' : 'fa-paper-plane me-2'"></i>
         {{ isSendingTest ? 'Sending Test...' : 'Send Test' }}
       </button>
-      <button type="button" class="btn btn-primary" appWriteAction="send this email" (click)="confirmSend()"> Send </button>
+      <button type="button" class="btn btn-primary" appWriteAction="send this email" (click)="confirmSend()" data-cy="catalyst-preview-send">{{ scheduledRun && batchSentCount === 0 ? 'Send and queue the rest' : 'Send' }}</button>
     </div>
   </div>

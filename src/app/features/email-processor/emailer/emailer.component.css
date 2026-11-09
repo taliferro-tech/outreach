@@ -575,3 +575,26 @@
 :host .text-muted {
   color: var(--muted) !important;
 }
+
+/* "Keep this page open" while Catalyst queues from the browser (2026-11-08). */
+.leave-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--surface2);
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.leave-notice strong { font-size: 15px; }
+.leave-notice span { color: var(--muted); }
+.leave-notice[data-tone="warn"] {
+  border-color: #f5c518;
+  background: color-mix(in srgb, #f5c518 12%, var(--surface));
+}
+.leave-notice[data-tone="done"] {
+  border-color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 12%, var(--surface));
+}
