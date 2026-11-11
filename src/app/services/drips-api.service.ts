@@ -27,6 +27,9 @@ export interface DripPatch {
   startMode?: Drip['startMode'];
   startDate?: string | null;
   endDate?: string | null;
+  /** Until it starts: the subject, and links to point somewhere else. */
+  subject?: string;
+  links?: { from: string; to: string }[];
 }
 
 export interface AudienceQuery {
@@ -62,6 +65,16 @@ export class DripsApiService {
     return this.call( 'POST', `/${ encodeURIComponent( id ) }/archive`, {} );
   }
 
+  /** Only before it starts; after that it's archived instead. */
+  remove ( id: string ): Promise<{ id: string; deleted: boolean }> {
+    return this.call( 'DELETE', `/${ encodeURIComponent( id ) }` );
+  }
+
+  /** This drip's email to the signed-in person only, marked [TEST]. */
+  sendTest ( id: string ): Promise<{ to: string }> {
+    return this.call( 'POST', `/${ encodeURIComponent( id ) }/test`, {} );
+  }
+
   duplicate ( id: string ): Promise<Drip> {
     return this.call( 'POST', `/${ encodeURIComponent( id ) }/duplicate`, {} );
   }
@@ -88,10 +101,11 @@ export class DripsApiService {
     return this.call( 'POST', '/audiences', query );
   }
 
-  private async call<T> ( method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown ): Promise<T> {
+  private async call<T> ( method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown ): Promise<T> {
     const url = `${ this.base }${ path }`;
     try {
       const request = method === 'GET' ? this.http.get<{ data: T }>( url ) :
+        method === 'DELETE' ? this.http.delete<{ data: T }>( url ) :
         method === 'PATCH' ? this.http.patch<{ data: T }>( url, body ) : this.http.post<{ data: T }>( url, body );
       return ( await firstValueFrom( request ) ).data;
     } catch ( error ) {

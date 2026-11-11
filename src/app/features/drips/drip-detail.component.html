@@ -45,6 +45,27 @@
           </div>
         </section>
 
+        <!-- Fix the subject or a wrong link before it sends (Ty, 2026-11-11). -->
+        <section class="card fix" *ngIf="editableSetup" aria-labelledby="fix-label" data-cy="drip-fix">
+          <h3 class="label" id="fix-label">Fix before it sends</h3>
+          <div class="fix__row">
+            <label class="fix__name" for="fix-subject">Subject</label>
+            <div class="fix__line">
+              <input id="fix-subject" class="field" type="text" maxlength="300" [(ngModel)]="subjectDraft" (keydown.enter)="saveSubject()">
+              <button type="button" class="secondary" (click)="saveSubject()" [disabled]="busy || !subjectChanged">Save</button>
+            </div>
+          </div>
+          <div class="fix__row" *ngFor="let row of linkRows; let i = index">
+            <label class="fix__name" [for]="'fix-link-' + i">Link: {{ row.label }}</label>
+            <div class="fix__line">
+              <input [id]="'fix-link-' + i" class="field" type="url" [(ngModel)]="row.to" (keydown.enter)="saveLink(row)" [attr.data-cy]="'drip-link-' + i">
+              <button type="button" class="secondary" (click)="saveLink(row)" [disabled]="busy || !row.to.trim() || row.to.trim() === row.from">Save</button>
+            </div>
+          </div>
+          <p class="note" *ngIf="!linkRows.length">This email has no links to change.</p>
+          <p class="note">A link change fixes every button and link that went there. To change the words or pictures, make it again in Email Creator and delete this drip.</p>
+        </section>
+
         <section class="card clicks" *ngIf="started || archived" aria-labelledby="clicks-label">
           <h3 class="label" id="clicks-label">Clicks by link <span class="label__sub">{{ clickSub }}</span></h3>
           <div class="clicks__row" *ngFor="let row of clickRows">
@@ -70,6 +91,11 @@
             </div>
             <p class="warn" *ngIf="drip.blocker" role="alert">Not sending: {{ drip.blocker.message }}</p>
             <p class="warn" *ngIf="inlineError" role="alert">{{ inlineError }}</p>
+            <div class="drip-actions">
+              <button type="button" class="secondary" (click)="sendTest()" [disabled]="testing" data-cy="drip-test">{{ testing ? 'Sending…' : 'Send test' }}</button>
+              <button type="button" class="linkish linkish--danger" *ngIf="editableSetup" (click)="askDelete()" [disabled]="busy" data-cy="drip-delete">Delete drip</button>
+            </div>
+            <p class="note drip-actions__note">The test goes only to you, marked [TEST], and doesn't count toward this drip's numbers.</p>
 
             <div class="block" *ngIf="editableSetup">
               <h4 class="label">Kind</h4>
@@ -226,6 +252,14 @@
           <button type="button" class="secondary" (click)="closeDialog()">Change dates</button>
         </div>
       </ng-container>
+    </ng-container>
+    <ng-container *ngSwitchCase="'delete'">
+      <h2>Delete this drip?</h2>
+      <p>It hasn't sent anything, so nothing is lost but the setup. The audience stays saved for your next drip. This can't be undone.</p>
+      <div class="dialog__actions">
+        <button type="button" class="secondary" (click)="closeDialog()">Keep it</button>
+        <button type="button" class="primary primary--pink" (click)="confirmDelete()" [disabled]="busy" data-cy="drip-delete-confirm">Delete</button>
+      </div>
     </ng-container>
     <ng-container *ngSwitchCase="'archive'">
       <ng-container *ngIf="dialog.type === 'archive'">

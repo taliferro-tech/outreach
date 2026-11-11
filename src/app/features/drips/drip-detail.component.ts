@@ -17,11 +17,13 @@ import {
 type Dialog =
   | { type: 'start'; title: string; body: string; note: string; action: string }
   | { type: 'overlap'; conflict: DripConflict }
-  | { type: 'archive'; queued: number };
+  | { type: 'archive'; queued: number }
+  | { type: 'delete' };
 
 interface AudienceRow { id: string; name: string; source: string; count: string; selected: boolean }
 interface ClickRow { label: string; count: number; width: number }
 interface Tile { value: string; label: string }
+interface LinkRow { from: string; label: string; to: string }
 
 /** One drip (design screens 03-11). */
 @Component( {
@@ -104,6 +106,11 @@ export class DripDetailComponent implements OnInit, OnDestroy {
   frameDoc: SafeHtml | null = null;
   frameHeight = 600;
 
+  // Fixing the email before it starts (Ty, 2026-11-11)
+  subjectDraft = '';
+  linkRows: LinkRow[] = [];
+  testing = false;
+
   // "New audience"
   audienceOpen = false;
   audienceForm: AudienceQuery = { source: 'contacts', mode: 'search', query: '' };
@@ -155,6 +162,7 @@ export class DripDetailComponent implements OnInit, OnDestroy {
       this.refresh();
       if ( htmlChanged ) this.renderFrame();
       else this.decorateFrame();
+      if ( htmlChanged || !quiet ) this.resetEdits();
     } catch ( error: any ) {
       if ( !quiet ) this.errorMessage = error?.message || 'Couldn\'t load this drip.';
     } finally {
@@ -247,6 +255,81 @@ export class DripDetailComponent implements OnInit, OnDestroy {
 
   closeDialog (): void {
     this.dialog = null;
+  }
+
+  // ---- test, fix, delete ------------------------------------------------------
+
+  async sendTest (): Promise<void> {
+    const drip = this.drip;
+    if ( !drip || this.testing ) return;
+    this.testing = true;
+    this.inlineError = '';
+    try {
+      const { to } = await this.api.sendTest( drip.id );
+      this.showToast( `Test sent to ${ to }. Check your inbox.` );
+    } catch ( error: any ) {
+      this.inlineError = error?.message || 'Couldn\'t send the test.';
+    } finally {
+      this.testing = false;
+    }
+  }
+
+  /** The subject box and one box per link, as the drip has them now. */
+  private resetEdits (): void {
+    const drip = this.drip;
+    this.subjectDraft = drip?.subject || '';
+    this.linkRows = emailLinks( drip?.html || '' ).map( ( link ) => ( { from: link.url, label: link.label, to: link.url } ) );
+  }
+
+  get subjectChanged (): boolean {
+    return !!this.drip && !!this.subjectDraft.trim() && this.subjectDraft.trim() !== this.drip.subject;
+  }
+
+  saveSubject (): void {
+    if ( this.subjectChanged ) void this.saveEdit( { subject: this.subjectDraft.trim() }, 'Subject saved.' );
+  }
+
+  saveLink ( row: LinkRow ): void {
+    const to = row.to.trim();
+    if ( to && to !== row.from ) void this.saveEdit( { links: [{ from: row.from, to }] }, `"${ row.label }" now goes to ${ to }.` );
+  }
+
+  private async saveEdit ( patch: DripPatch, done: string ): Promise<void> {
+    if ( !this.drip ) return;
+    this.busy = true;
+    this.inlineError = '';
+    try {
+      this.drip = { ...this.drip, ...( await this.api.update( this.drip.id, patch ) ) };
+      if ( this.detail ) this.detail = { ...this.detail, drip: this.drip };
+      this.refresh();
+      this.renderFrame();
+      this.resetEdits();
+      this.showToast( done );
+    } catch ( error: any ) {
+      this.inlineError = error?.message || 'Couldn\'t save that change.';
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  askDelete (): void {
+    this.dialog = { type: 'delete' };
+  }
+
+  async confirmDelete (): Promise<void> {
+    const drip = this.drip;
+    if ( !drip ) return;
+    this.busy = true;
+    try {
+      await this.api.remove( drip.id );
+      this.dialog = null;
+      await this.router.navigate( ['/drips'] );
+    } catch ( error: any ) {
+      this.dialog = null;
+      this.inlineError = error?.message || 'Couldn\'t delete it.';
+    } finally {
+      this.busy = false;
+    }
   }
 
   // ---- settings -------------------------------------------------------------

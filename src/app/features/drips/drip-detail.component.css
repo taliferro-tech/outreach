@@ -672,3 +672,38 @@
     grid-template-columns: 1fr 80px 40px;
   }
 }
+
+/* ---- Send test, Delete, Fix before it sends (2026-11-11) ---- */
+.drip-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -8px;
+}
+
+.drip-actions__note { margin-top: -14px; }
+
+.linkish--danger { align-self: center; color: var(--t-pink-fg); }
+
+.fix {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+}
+
+.fix__row { display: flex; flex-direction: column; gap: 6px; }
+
+.fix__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fix__line { display: flex; gap: 8px; }
+.fix__line .field { flex: 1; min-width: 0; background: var(--surface); color: var(--text); border: 0; }
+.fix__line .secondary { flex: none; }
