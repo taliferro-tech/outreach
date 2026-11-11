@@ -101,6 +101,7 @@
                   <div class="seg seg--wide" *ngIf="audienceForm.source === 'contacts'" role="radiogroup" aria-label="Find by">
                     <button type="button" role="radio" [class.is-on]="audienceForm.mode === 'search'" (click)="setAudienceMode('search')">Describe them</button>
                     <button type="button" role="radio" [class.is-on]="audienceForm.mode === 'category'" (click)="setAudienceMode('category')" [disabled]="!categories.length">By category</button>
+                    <button type="button" role="radio" [class.is-on]="audienceForm.mode === 'all'" (click)="setAudienceMode('all')" data-cy="audience-all">All contacts</button>
                   </div>
                   <select class="field" *ngIf="audienceForm.source === 'contacts' && audienceForm.mode === 'category'" [(ngModel)]="audienceForm.query" (ngModelChange)="onAudienceQuery()" aria-label="Category">
                     <optgroup label="Groups" *ngIf="categoryGroups.length">
@@ -112,6 +113,7 @@
                   </select>
                   <input class="field" *ngIf="audienceForm.source !== 'contacts' || audienceForm.mode === 'search'" type="text" [(ngModel)]="audienceForm.query" (ngModelChange)="onAudienceQuery()" (keydown.enter)="findAudience()"
                          [placeholder]="audienceForm.source !== 'contacts' ? 'e.g. fashion brands in New York' : 'e.g. fashion brands'" aria-label="Who should get it">
+                  <p class="note" *ngIf="audienceForm.source === 'contacts' && audienceForm.mode === 'all'" data-cy="audience-all-note">Everyone in your contacts who can be emailed. Unsubscribed, blocked and deleted contacts are left out.</p>
                   <button type="button" class="secondary" (click)="findAudience()" [disabled]="audienceBusy || !audienceForm.query.trim()">{{ audienceBusy && !audiencePreview ? 'Finding…' : 'Find people' }}</button>
                   <!-- Two steps people missed (Ty, 2026-10-25): choosing a category doesn't attach it yet. -->
                   <p class="note" *ngIf="!audiencePreview" data-cy="audience-steps"><strong>Step 1 of 2:</strong> press Find people to see who's in it.</p>

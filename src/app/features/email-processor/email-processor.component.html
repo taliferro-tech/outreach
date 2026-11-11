@@ -40,6 +40,7 @@
                 <span class="visually-hidden">Who gets it</span>
                 <select [ngModel]="audienceKey" (ngModelChange)="onAudienceChange($event)" [disabled]="!!catalystAssistantContext?.isRunning || audienceLoading" data-cy="catalyst-audience">
                     <option value="stale">Haven't heard from in a while</option>
+                    <option value="all" data-cy="catalyst-audience-all">All contacts ({{ allContactsCount }})</option>
                     <optgroup label="Written for this email" *ngIf="writtenForOption">
                         <option [value]="writtenForOption.key">{{ writtenForOption.name }} ({{ writtenForOption.count }})</option>
                     </optgroup>
@@ -61,6 +62,13 @@
                         [class.is-selected]="processingCount === size"
                         [disabled]="!!catalystAssistantContext?.isRunning"
                         (click)="onProcessingCountChange(size)">{{ size }}</button>
+                <button type="button"
+                        role="radio"
+                        data-cy="catalyst-batch-all"
+                        [attr.aria-checked]="processingCount === allBatch"
+                        [class.is-selected]="processingCount === allBatch"
+                        [disabled]="!!catalystAssistantContext?.isRunning"
+                        (click)="onProcessingCountChange(allBatch)">All</button>
             </div>
             <p class="choose__note" *ngIf="catalystAssistantContext?.isRunning" data-cy="catalyst-audience-locked">A run is in progress. Press Stop below to choose different people.</p>
             <p class="choose__summary" *ngIf="isStaleAudience; else audienceSummary">

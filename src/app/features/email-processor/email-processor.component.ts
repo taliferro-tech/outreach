@@ -50,6 +50,10 @@ import {
 
 /** Choose who's default: people not contacted in a while, stalest first. */
 const STALE_AUDIENCE = 'stale';
+/** Everyone who can be emailed (Ty, 2026-11-10). */
+const ALL_AUDIENCE = 'all';
+/** The All batch size: everyone in the audience, up to the same 20,000 cap as a drip audience. */
+export const ALL_BATCH = 20000;
 /** The contacts who match the audience a Marketing Assistant email was written for. */
 const WRITTEN_FOR_AUDIENCE = 'match:written-for';
 
@@ -130,6 +134,7 @@ export class EmailProcessorComponent extends TopDogComponent {
   processingCount: number = 25;
   /** The batch chips in "Choose who" (design 4l). */
   readonly batchSizes = [25, 50, 100, 250, 500, 1000, 2500];
+  readonly allBatch = ALL_BATCH;
   /** From the Up next list: who's eligible, how stale, how many urgent. */
   staleStats = { eligible: 0, staged: 0, oldest: 0, urgent: 0 };
   /** While an email previews, Send takes the full width. */
@@ -393,6 +398,8 @@ export class EmailProcessorComponent extends TopDogComponent {
   audienceGroups: AudienceOption[] = [];
   audienceCategories: AudienceOption[] = [];
   savedAudiences: AudienceOption[] = [];
+  /** Contacts who can be emailed, for the All contacts option. */
+  allContactsCount = 0;
   audienceFilter: ( ( contact: any ) => boolean ) | null = null;
   audienceNote = '';
   audienceLoading = false;
@@ -406,6 +413,7 @@ export class EmailProcessorComponent extends TopDogComponent {
 
   get audienceTitle (): string {
     if ( this.isStaleAudience ) return 'People you may have forgotten';
+    if ( this.audienceKey === ALL_AUDIENCE ) return 'All contacts';
     const all = [...( this.writtenForOption ? [this.writtenForOption] : [] ), ...this.audienceGroups, ...this.audienceCategories, ...this.savedAudiences];
     return all.find( ( option ) => option.key === this.audienceKey )?.name || 'Your audience';
   }
@@ -422,6 +430,7 @@ export class EmailProcessorComponent extends TopDogComponent {
     this.audienceOptionsBuiltFor = this.liteContacts;
     const emailable = ( this.liteContacts || [] ).filter( ( contact: any ) =>
       String( contact?.firstName || '' ).trim() && !!contact?.emailAddresses?.length && !contact.emailAddresses[0].blocked );
+    this.allContactsCount = emailable.length;
     this.audienceGroups = CONTACT_GROUPS.map( ( group ) => ( {
       key: `group:${ group.id }`, name: group.name, count: emailable.filter( ( contact ) => group.test( contact ) ).length,
     } ) );
@@ -576,6 +585,11 @@ export class EmailProcessorComponent extends TopDogComponent {
       this.audienceFilter = null;
       return;
     }
+    if ( key === ALL_AUDIENCE ) {
+      this.audienceFilter = () => true;
+      this.audienceNote = 'Everyone in your contacts who can be emailed, longest wait first. Pick All below to send to every one of them, or a batch size to send in rounds.';
+      return;
+    }
     const [kind, ...rest] = key.split( ':' );
     const value = rest.join( ':' );
     if ( kind === 'group' ) {
@@ -728,7 +742,8 @@ export class EmailProcessorComponent extends TopDogComponent {
 
   private get leadVaultQueueLimit (): number {
     const baseCount = Math.max( Number( this.contactsToPass?.length || 0 ), 0 );
-    const batchCount = Math.max( Number( this.processingCount || 0 ), 0 );
+    // All is a ceiling, not a count: top Lead Vault up from the people actually loaded.
+    const batchCount = this.processingCount >= ALL_BATCH ? 0 : Math.max( Number( this.processingCount || 0 ), 0 );
     const effectiveBase = Math.max( baseCount, batchCount, 1 );
     return effectiveBase + 200;
   }

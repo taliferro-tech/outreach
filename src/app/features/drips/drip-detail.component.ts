@@ -324,7 +324,8 @@ export class DripDetailComponent implements OnInit, OnDestroy {
 
   setAudienceMode ( mode: AudienceQuery['mode'] ): void {
     const first = this.categories.find( ( item ) => !item.group ) || this.categories[0];
-    this.audienceForm = { ...this.audienceForm, mode, query: mode === 'category' ? this.categoryValue( first ) : '' };
+    // All contacts needs no description; 'all' keeps Find people enabled (Ty, 2026-11-10).
+    this.audienceForm = { ...this.audienceForm, mode, query: mode === 'category' ? this.categoryValue( first ) : mode === 'all' ? 'all' : '' };
     this.audiencePreview = null;
   }
 
@@ -340,7 +341,7 @@ export class DripDetailComponent implements OnInit, OnDestroy {
       this.audiencePreview = await this.api.previewAudience( this.audienceForm );
       if ( !this.audienceName ) {
         const picked = this.audienceForm.mode === 'category' ? this.categories.find( ( item ) => this.categoryValue( item ) === this.audienceForm.query ) : null;
-        this.audienceName = ( picked?.name || this.audienceForm.query.trim() ).slice( 0, 60 );
+        this.audienceName = ( this.audienceForm.mode === 'all' ? 'All contacts' : picked?.name || this.audienceForm.query.trim() ).slice( 0, 60 );
       }
     } catch ( error: any ) {
       this.audienceError = error?.message || 'Couldn\'t find anyone.';
