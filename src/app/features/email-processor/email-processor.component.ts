@@ -1,3 +1,4 @@
+import { isContactMailable } from './contact-mailable';
 import { WriteActionDirective } from '../../shared/write-access/write-action.directive';
 import { BrowseNoticeComponent } from '../../shared/write-access/browse-notice.component';
 import { ChangeDetectorRef, Component, ViewChild, inject } from '@angular/core';
@@ -429,7 +430,7 @@ export class EmailProcessorComponent extends TopDogComponent {
     if ( this.audienceOptionsBuiltFor === this.liteContacts ) return;
     this.audienceOptionsBuiltFor = this.liteContacts;
     const emailable = ( this.liteContacts || [] ).filter( ( contact: any ) =>
-      String( contact?.firstName || '' ).trim() && !!contact?.emailAddresses?.length && !contact.emailAddresses[0].blocked );
+      String( contact?.firstName || '' ).trim() && isContactMailable( contact ) );
     this.allContactsCount = emailable.length;
     this.audienceGroups = CONTACT_GROUPS.map( ( group ) => ( {
       key: `group:${ group.id }`, name: group.name, count: emailable.filter( ( contact ) => group.test( contact ) ).length,

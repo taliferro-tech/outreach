@@ -1,3 +1,4 @@
+import { isContactMailable } from '../contact-mailable';
 import { Component, Input, OnDestroy, ViewChild, ElementRef, OnChanges, SimpleChanges, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -148,7 +149,7 @@ export class LastContactChartComponent implements OnInit, OnDestroy, OnChanges {
         if ( this.audienceFilter && !this.audienceFilter( contact ) ) return false;
         if ( !this.isEmailerEligibleContact( contact ) ) return false;
         if ( this.contactedRecently( contact, today ) ) return false;
-        return contact.emailAddresses && contact.emailAddresses.length > 0 && !contact.emailAddresses[0].blocked;
+        return isContactMailable( contact );
       } )
       .map( contact => {
         let lastContactDate: Date | null = null;
