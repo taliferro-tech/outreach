@@ -24,7 +24,7 @@
         </p>
     </header>
 
-    <app-preloader *ngIf="loading && !summary"></app-preloader>
+    <app-preloader *ngIf="loading && !summary" [isLoading]="true" message="Loading the Marketing Assistant's day…" [autoHideAfterMs]="null"></app-preloader>
     <p class="error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
 
     <ng-container *ngIf="summary as s">

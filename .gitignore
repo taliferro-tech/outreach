@@ -51,3 +51,11 @@ ui-debug.log
 /cypress/screenshots
 /cypress/videos
 /cypress/downloads
+
+# Videos (kept locally, not on GitHub)
+*.mp4
+*.mov
+*.webm
+*.m4v
+*.avi
+*.mkv

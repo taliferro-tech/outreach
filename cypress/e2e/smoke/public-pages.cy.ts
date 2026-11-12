@@ -7,8 +7,19 @@ describe('Public pages', () => {
 
   // Playback itself isn't asserted: Cypress's default Electron browser has no
   // H.264 decoder. Run with --browser chrome to see the tour actually play.
+  // The silent tour autoplays and takes over the hero on desktop, which hides
+  // "Watch the tour" until it ends. Report reduced motion so the hero starts
+  // idle, as it does for those visitors, and the button can be clicked.
   it('opens the product tour full screen and closes it', () => {
-    cy.visit('/');
+    cy.visit('/', {
+      onBeforeLoad(win) {
+        const real = win.matchMedia.bind(win);
+        cy.stub(win, 'matchMedia').callsFake((query: string) =>
+          query.includes('prefers-reduced-motion')
+            ? ({ ...real(query), matches: true, media: query } as MediaQueryList)
+            : real(query));
+      }
+    });
     cy.get('.tour__video').should('have.attr', 'src', 'video/outreach-tour.mp4');
     cy.get('[data-cy=landing-watch-tour]').click();
     cy.get('.tour-overlay__video').should('be.visible');

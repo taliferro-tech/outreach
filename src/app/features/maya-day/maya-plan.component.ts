@@ -72,7 +72,7 @@ export class MayaPlanComponent implements OnChanges {
   @Input() filter: PlanFilter = 'all';
   @Output() filterChange = new EventEmitter<PlanFilter>();
 
-  loading = false;
+  loading = true;
   error = '';
   private rows: PlanRow[] = [];
   groups: PlanGroup[] = [];

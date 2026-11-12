@@ -32,7 +32,8 @@ export class MayaDayComponent implements OnInit, OnDestroy {
 
   tenantId: string | null = null;
   summary: MayaDaySummary | null = null;
-  loading = false;
+  /** True from the start: the page waits for the workspace before it can load. */
+  loading = true;
   errorMessage = '';
 
   private readonly route = inject( ActivatedRoute );
