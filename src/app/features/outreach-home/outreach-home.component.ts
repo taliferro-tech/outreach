@@ -4,7 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { BackToTopComponent } from '../../shared/back-to-top/back-to-top.component';
 import { OutreachAuthService } from '../../services/outreach-auth.service';
-import { OutreachApiService } from '../../services/outreach-api.service';
+import { AssistantNotice, OutreachApiService } from '../../services/outreach-api.service';
 import { OutreachGoalService } from '../../services/outreach-goal.service';
 import { OutreachAssistantSignalService } from '../../services/outreach-assistant-signal.service';
 import { LoggerService } from '../../services/logger.service';
@@ -121,6 +121,8 @@ export class OutreachHomeComponent implements OnInit, OnDestroy {
   catalystLine = '';
   pipeline = { activeThreads: 0, draftReady: 0, upNext: 0, hotLeads: 0, warmLeads: 0, queued: 0, sending: 0 };
   brokenMailboxAddress = '';
+  /** What the Marketing Assistant did about a blocker since the last visit (no limbo, Ty 2026-11-12). */
+  assistantNotices: AssistantNotice[] = [];
   mayaDayLine = '';
   activityGroups: ActivityGroup[] = [];
 
@@ -202,6 +204,22 @@ export class OutreachHomeComponent implements OnInit, OnDestroy {
     private logger: LoggerService,
     private pageActionsService: OutreachPageActionsService
   ) { }
+
+  private async loadAssistantNotices ( tenantId: string ): Promise<void> {
+    try {
+      const response = await firstValueFrom( this.outreachApi.getAssistantNotices( { tenantId, userId: this.userId || undefined, userEmail: this.userEmail || undefined } ) );
+      this.assistantNotices = response?.data?.notices || [];
+    } catch {
+      this.assistantNotices = [];
+    }
+  }
+
+  dismissNotice ( notice: AssistantNotice ): void {
+    this.assistantNotices = this.assistantNotices.filter( ( item ) => item.id !== notice.id );
+    if ( !this.tenantId ) return;
+    firstValueFrom( this.outreachApi.markAssistantNoticeSeen( notice.id, { tenantId: this.tenantId, userId: this.userId || undefined, userEmail: this.userEmail || undefined } ) )
+      .catch( ( error ) => this.logger.error( 'Could not mark the note as seen', error ) );
+  }
 
   ngOnInit (): void {
     this.setOutreachPageClass( true );
@@ -650,6 +668,7 @@ export class OutreachHomeComponent implements OnInit, OnDestroy {
     if ( !tenantId ) {
       return;
     }
+    void this.loadAssistantNotices( tenantId );
 
     try {
       const [batchResponse, bootstrapResponse] = await Promise.all( [

@@ -47,6 +47,14 @@
       <a class="pill pill--dark" routerLink="/inbox-access">Connect</a>
     </div>
 
+    <div class="home__note" *ngFor="let notice of assistantNotices" role="status" data-cy="home-assistant-notice">
+      <div class="home__note-copy">
+        <span class="home__note-from">Marketing Assistant</span>
+        <p>{{ notice.message }}</p>
+      </div>
+      <button type="button" class="pill" (click)="dismissNotice(notice)">Got it</button>
+    </div>
+
     <section class="needs-you" aria-labelledby="needs-you-title">
       <div class="needs-you__head">
         <span class="needs-you__count">{{ needsYouRows.length }}</span>

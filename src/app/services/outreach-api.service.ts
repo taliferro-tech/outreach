@@ -504,6 +504,14 @@ export interface MayaQueueHealth {
   counts: { openTaskCount: number; openDraftCount: number; openSocialPostCount: number; taskLimit: number; draftLimit: number; socialPostLimit: number; };
 }
 
+export interface AssistantNotice {
+  id: string;
+  kind: string;
+  message: string;
+  detail?: string;
+  createdAt: string;
+}
+
 @Injectable( { providedIn: 'root' } )
 export class OutreachApiService {
   private baseUrl = `${environment.backendURL}`;
@@ -685,6 +693,17 @@ export class OutreachApiService {
   previewMomentumDraftTemplate ( contactId: string, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { subject: string; html: string; templateId: string | null; source: string | null; stale: boolean; fellBack: string; }; }> {
     const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
     return this.http.post<{ success: boolean; data: { subject: string; html: string; templateId: string | null; source: string | null; stale: boolean; fellBack: string; }; }>( `${this.baseUrl}/outreach/momentum-threads/${encodeURIComponent( contactId )}/template-preview`, {}, { headers } );
+  }
+
+  /** Notes the Marketing Assistant left for this visit, e.g. stale drafts she cleared (Ty, 2026-11-12). */
+  getAssistantNotices ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data?: { notices?: AssistantNotice[]; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.get<{ success: boolean; data?: { notices?: AssistantNotice[]; }; }>( `${this.baseUrl}/outreach/assistant-notices`, { headers } );
+  }
+
+  markAssistantNoticeSeen ( id: string, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.post<{ success: boolean; }>( `${this.baseUrl}/outreach/assistant-notices/${encodeURIComponent( id )}/seen`, {}, { headers } );
   }
 
   // Plain reject - discards the current draft with no rewrite attempt (distinct

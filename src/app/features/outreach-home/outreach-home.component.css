@@ -75,6 +75,42 @@
   flex: 1;
 }
 
+/* A note from the Marketing Assistant about something she handled */
+.home__note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px 14px 18px;
+  border-radius: 18px;
+  background: var(--t-blue);
+  color: var(--t-blue-fg);
+}
+
+.home__note-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.home__note-from {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home__note p {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .home__note {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* Needs you hero */
 .needs-you {
   display: flex;
