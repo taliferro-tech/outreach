@@ -21,6 +21,7 @@ interface GroupView {
 }
 
 const GROUPS: Array<{ id: SentGroup; title: string; hint: string; }> = [
+  { id: 'replies', title: 'Your replies', hint: 'Answers you sent from Inbox' },
   { id: 'engaged', title: 'Engaged', hint: "clicked a link. Follow up while it's fresh." },
   { id: 'opened', title: 'Opened', hint: 'The Marketing Assistant has a follow-up planned for each' },
   { id: 'none', title: 'No response yet', hint: 'The Marketing Assistant will try a new angle' },
@@ -91,7 +92,7 @@ export class SentComponent implements OnInit, OnDestroy {
       this.rows = await this.sent.load( this.opts );
       const present = new Set( this.rows.map( ( row ) => row.by ) );
       // The design's three first, then anything else that actually sent.
-      const order: SentBy[] = ['catalyst', 'manual', 'reviewed_reply', 'maya', 'campaign', 'hot_lead'];
+      const order: SentBy[] = ['catalyst', 'manual', 'inbox_reply', 'reviewed_reply', 'maya', 'campaign', 'hot_lead'];
       this.byOptions = [{ id: 'all', label: 'Anyone' }, ...order.filter( ( id ) => present.has( id ) || ['catalyst', 'manual', 'reviewed_reply'].includes( id ) ).map( ( id ) => ( { id, label: SENT_BY_LABELS[id] } ) )];
       for ( const row of this.rows ) if ( row.hasDraft && row.contactId ) this.followUps.set( row.contactId, 'ready' );
       this.rebuild();
@@ -109,12 +110,12 @@ export class SentComponent implements OnInit, OnDestroy {
 
   private rebuild (): void {
     const rows = this.by === 'all' ? this.rows : this.rows.filter( ( row ) => row.by === this.by );
-    // Most clicks first, then newest.
-    const sorted = [...rows].sort( ( a, b ) => b.clicks - a.clicks || ( b.sentAt?.getTime() || 0 ) - ( a.sentAt?.getTime() || 0 ) );
+    // Newest first inside each group (Ty, 2026-11-12: clicks-first hid what he just sent).
+    const sorted = [...rows].sort( ( a, b ) => ( b.sentAt?.getTime() || 0 ) - ( a.sentAt?.getTime() || 0 ) );
     this.groups = GROUPS
       .map( ( group ) => ( { ...group, rows: sorted.filter( ( row ) => row.group === group.id ) } ) )
       .filter( ( group ) => group.rows.length );
-    const engaged = rows.filter( ( row ) => row.group !== 'none' ).length;
+    const engaged = rows.filter( ( row ) => row.group === 'engaged' || row.group === 'opened' ).length;
     this.subtitle = `${ rows.length } sent in the last 30 days. ${ engaged } opened or clicked.${ rows.some( ( row ) => row.clicks ) ? ' The people who clicked are at the top.' : '' }`;
   }
 

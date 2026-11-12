@@ -5,17 +5,17 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Email } from '../../models/email.model';
 import { MomentumThread } from '../../models/momentum-thread.model';
-import { EmailApiService } from '../../services/email-api.service';
 import { OutreachApiService } from '../../services/outreach-api.service';
 
-export type SentGroup = 'engaged' | 'opened' | 'none';
+export type SentGroup = 'replies' | 'engaged' | 'opened' | 'none';
 
 /** Who sent it, as the "Sent by" select names it. */
-export type SentBy = 'catalyst' | 'manual' | 'reviewed_reply' | 'maya' | 'campaign' | 'hot_lead';
+export type SentBy = 'catalyst' | 'manual' | 'inbox_reply' | 'reviewed_reply' | 'maya' | 'campaign' | 'hot_lead';
 
 export const SENT_BY_LABELS: Record<SentBy, string> = {
   catalyst: 'Catalyst',
   manual: 'You, from Composer',
+  inbox_reply: 'You, from Inbox',
   reviewed_reply: 'Reviewed reply',
   maya: 'Marketing Assistant',
   campaign: 'A campaign',
@@ -26,6 +26,7 @@ export const SENT_BY_LABELS: Record<SentBy, string> = {
 const SENT_BY_META: Record<SentBy, string> = {
   catalyst: 'Sent by Catalyst',
   manual: 'Sent by you from Composer',
+  inbox_reply: 'Your reply from Inbox',
   reviewed_reply: 'Reviewed reply',
   maya: 'Sent by the Marketing Assistant',
   campaign: 'Sent by a campaign',
@@ -57,8 +58,6 @@ const RANGE_DAYS = 30;
  *  opens and clicks every link within five minutes of a send, seconds apart. */
 const SCANNER_AFTER_SEND_MS = 5 * 60 * 1000;
 const SCANNER_BURST_MS = 5 * 1000;
-const PAGE_SIZE = 100;
-const MAX_PAGES = 10;
 
 /**
  * Sent (design_handoff_outreach_mail 1j): the last 30 days of sent email,
@@ -69,7 +68,6 @@ const MAX_PAGES = 10;
 @Injectable( { providedIn: 'root' } )
 export class SentService {
   private readonly http = inject( HttpClient );
-  private readonly emailApi = inject( EmailApiService );
   private readonly outreachApi = inject( OutreachApiService );
 
   async load ( opts: { tenantId: string; userId?: string; userEmail?: string; }, now = new Date() ): Promise<SentRow[]> {
@@ -107,19 +105,12 @@ export class SentService {
     await firstValueFrom( this.http.post( `${ environment.backendURL }/outreach/momentum-threads/draft-assist`, { contactId, purpose: 'follow_up' }, { headers } ) );
   }
 
-  /** Newest first, page by page, until a page reaches past the range. */
+  /** The whole range in one call (GET /outreach/sent-emails, Ty 2026-11-12): paging
+   *  /outreach/emails ten times in a row took over a minute. */
   private async loadEmails ( since: number ): Promise<Email[]> {
-    const all: Email[] = [];
-    let cursor: string | undefined;
-    for ( let page = 0; page < MAX_PAGES; page++ ) {
-      const response = await firstValueFrom( this.emailApi.getEmails( { pageSize: PAGE_SIZE, ...( cursor ? { cursor } : {} ) } ) );
-      const records = response?.data?.records || [];
-      all.push( ...records );
-      const oldest = records.length ? sentDate( records[records.length - 1] ) : null;
-      cursor = response?.data?.nextCursor || undefined;
-      if ( !response?.data?.hasMore || !cursor || ( oldest && oldest.getTime() < since ) ) break;
-    }
-    return all;
+    const days = Math.max( 1, Math.ceil( ( Date.now() - since ) / 86400000 ) );
+    const response = await firstValueFrom( this.http.get<{ data?: { records?: Email[]; }; }>( `${ environment.backendURL }/outreach/sent-emails`, { params: { days: String( days ) } } ) );
+    return response?.data?.records || [];
   }
 }
 
@@ -169,6 +160,7 @@ export function sentBy ( email: Email ): SentBy {
   const authority = String( email?.sendAuthority || '' ).toLowerCase();
   const origin = String( email?.signalOrigin || '' ).toLowerCase();
   const source = String( email?.sourceSystem || '' ).toLowerCase();
+  if ( type === 'mailbox_reply' ) return 'inbox_reply';
   if ( type === 'hot_lead_seizure_auto_send' || authority === 'exception_hot_lead' ) return 'hot_lead';
   if ( type === 'reply_review_send' || authority === 'manual_reviewed' ) return 'reviewed_reply';
   if ( type.startsWith( 'momentum_' ) || authority === 'momentum_auto' || type === 'maya_send' || authority === 'maya' || origin === 'maya' || source === 'maya' ) return 'maya';
@@ -222,8 +214,9 @@ function toRow ( email: Email, thread: MomentumThread | null, now: Date ): SentR
     by,
     opens,
     clicks,
-    group: clicks ? 'engaged' : opens ? 'opened' : 'none',
-    activity: activityLabel( opens, clicks ),
+    // Inbox replies carry no tracking, so opens can't be known either way.
+    group: raw.untracked ? 'replies' : clicks ? 'engaged' : opens ? 'opened' : 'none',
+    activity: raw.untracked ? 'Not tracked' : activityLabel( opens, clicks ),
     next,
     hasDraft: thread?.userLane === 'drafts',
   };
