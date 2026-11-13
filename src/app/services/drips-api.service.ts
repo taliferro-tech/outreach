@@ -33,10 +33,21 @@ export interface DripPatch {
 }
 
 export interface AudienceQuery {
-  source: 'contacts' | 'leadVault' | 'both';
-  mode: 'search' | 'category' | 'all';
+  /** 'upload': a CSV parsed in the browser, sent as rows; those people stay out of contacts. */
+  source: 'contacts' | 'leadVault' | 'both' | 'upload';
+  mode: 'search' | 'category' | 'all' | 'list';
   query: string;
   name?: string;
+  rows?: Record<string, string>[];
+}
+
+export interface AudiencePreview {
+  count: number;
+  sample: string[];
+  terms: string[];
+  /** Upload only: rows left out (no address, repeats, unsubscribed) and rows with a personal line. */
+  skipped?: number;
+  withLine?: number;
 }
 
 /** todd-backend /outreach/drips; the interceptors add the ID token and tenant. */
@@ -93,7 +104,7 @@ export class DripsApiService {
     return this.call( 'GET', `/audiences/${ encodeURIComponent( id ) }/contacts` );
   }
 
-  previewAudience ( query: AudienceQuery ): Promise<{ count: number; sample: string[]; terms: string[] }> {
+  previewAudience ( query: AudienceQuery ): Promise<AudiencePreview> {
     return this.call( 'POST', '/audiences/preview', query );
   }
 

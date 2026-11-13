@@ -330,6 +330,15 @@
   background: var(--bg);
 }
 
+.upload-pick {
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.new-audience code {
+  font-size: 13px;
+}
+
 .field {
   width: 100%;
   height: 44px;

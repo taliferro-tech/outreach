@@ -6,7 +6,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InboxIconComponent } from '../inbox/inbox-icon.component';
 import { OutreachAuthService } from '../../services/outreach-auth.service';
-import { AudienceQuery, DripCategory, DripPatch, DripsApiError, DripsApiService } from '../../services/drips-api.service';
+import { AudiencePreview, AudienceQuery, DripCategory, DripPatch, DripsApiError, DripsApiService } from '../../services/drips-api.service';
+import { parseCsv } from '../../shared/utils/csv.util';
 import { EMAIL_CREATOR_URL } from './drips.component';
 import {
   DRIP_MAX_DAYS, Drip, DripConflict, DripDetail, DripKind, KIND_LABELS, KIND_TINTS, STATUS_LABELS, STATUS_TINTS,
@@ -116,9 +117,10 @@ export class DripDetailComponent implements OnInit, OnDestroy {
   audienceForm: AudienceQuery = { source: 'contacts', mode: 'search', query: '' };
   audienceName = '';
   categories: DripCategory[] = [];
-  audiencePreview: { count: number; sample: string[] } | null = null;
+  audiencePreview: AudiencePreview | null = null;
   audienceError = '';
   audienceBusy = false;
+  uploadFileName = '';
 
   ngOnInit (): void {
     this.subscriptions.push( this.route.paramMap.subscribe( ( params ) => {
@@ -401,8 +403,41 @@ export class DripDetailComponent implements OnInit, OnDestroy {
     // A description carries over; a category only means something to Contacts.
     const query = this.audienceForm.mode === 'search' ? this.audienceForm.query : '';
     this.audienceForm = { source, mode: 'search', query };
+    this.uploadFileName = '';
     this.audiencePreview = null;
     this.audienceError = '';
+  }
+
+  /** Upload a CSV (Ty, 2026-11-13): people who live only on this audience, never in contacts. */
+  chooseUpload (): void {
+    if ( this.audienceForm.source === 'upload' ) return;
+    this.audienceForm = { source: 'upload', mode: 'list', query: '', rows: [] };
+    this.uploadFileName = '';
+    this.audiencePreview = null;
+    this.audienceError = '';
+  }
+
+  /** Reads the chosen CSV in the browser, then asks the server who's in it. */
+  async onUploadFile ( event: Event ): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if ( !file ) return;
+    this.audiencePreview = null;
+    this.audienceError = '';
+    if ( file.size > 5 * 1024 * 1024 ) {
+      this.audienceError = 'That file is over 5 MB. Split it into smaller lists.';
+      return;
+    }
+    const rows = parseCsv( await file.text() );
+    if ( !rows.length ) {
+      this.audienceError = 'That file has no rows under its header.';
+      return;
+    }
+    this.uploadFileName = file.name;
+    this.audienceForm = { source: 'upload', mode: 'list', query: file.name, rows };
+    this.audienceName = file.name.replace( /\.csv$/i, '' ).slice( 0, 60 );
+    await this.findAudience();
   }
 
   setAudienceMode ( mode: AudienceQuery['mode'] ): void {
@@ -444,6 +479,7 @@ export class DripDetailComponent implements OnInit, OnDestroy {
       this.audienceOpen = false;
       this.audienceName = '';
       this.audiencePreview = null;
+      this.uploadFileName = '';
       this.audienceForm = { source: 'contacts', mode: 'search', query: '' };
       await this.load( { quiet: true } );
       this.showToast( `${ audience.name } saved, ${ audience.count.toLocaleString( 'en-US' ) } people.` );

@@ -12,7 +12,7 @@ export type DripKind = 'newsletter' | 'blog' | 'announcement';
 export interface DripAudienceRef {
   id: string;
   name: string;
-  source: 'contacts' | 'leadVault' | 'both';
+  source: 'contacts' | 'leadVault' | 'both' | 'upload';
   count: number;
   lockedAt?: string;
 }
@@ -245,6 +245,7 @@ export function audienceLine ( drip: Drip ): string {
 }
 
 export function sourceLabel ( source: DripAudienceRef['source'] ): string {
+  if ( source === 'upload' ) return 'Uploaded list';
   return source === 'both' ? 'Contacts + Lead Vault' : source === 'leadVault' ? 'Lead Vault' : 'Contacts';
 }
 
