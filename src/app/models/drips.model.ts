@@ -66,6 +66,8 @@ export interface Drip {
   blocker: { code: string; message: string } | null;
   fromName: string;
   fromEmail: string;
+  /** 'standard': the template's footer. 'personal': one quiet line with the address and a way out. */
+  footer?: 'standard' | 'personal';
 }
 
 export interface DripSlotHolder {

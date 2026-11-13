@@ -156,7 +156,7 @@ export class DripDetailComponent implements OnInit, OnDestroy {
     if ( !quiet ) this.loading = true;
     try {
       const detail = await this.api.get( this.dripId );
-      const htmlChanged = detail.drip.html !== this.drip?.html;
+      const htmlChanged = detail.drip.html !== this.drip?.html || detail.drip.footer !== this.drip?.footer;
       this.detail = detail;
       this.drip = detail.drip;
       this.today = detail.today;
@@ -289,6 +289,12 @@ export class DripDetailComponent implements OnInit, OnDestroy {
 
   saveSubject (): void {
     if ( this.subjectChanged ) void this.saveEdit( { subject: this.subjectDraft.trim() }, 'Subject saved.' );
+  }
+
+  /** Standard (the template's footer) or personal (one quiet line) - Ty, 2026-11-13. */
+  setFooter ( footer: 'standard' | 'personal' ): void {
+    if ( !this.drip || footer === ( this.drip.footer || 'standard' ) ) return;
+    void this.saveEdit( { footer }, footer === 'personal' ? 'Personal footer on: one quiet line instead of the newsletter footer.' : 'Standard footer back on.' );
   }
 
   saveLink ( row: LinkRow ): void {
@@ -497,7 +503,7 @@ export class DripDetailComponent implements OnInit, OnDestroy {
   }
 
   private renderFrame (): void {
-    const html = this.drip?.html || '';
+    const html = this.drip?.footer === 'personal' ? personalFooterPreview( this.drip?.html || '' ) : this.drip?.html || '';
     const page = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>
       html,body{margin:0;padding:0;background:#fff;}
       body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#0f1115;overflow:hidden;}
@@ -686,4 +692,13 @@ export class DripDetailComponent implements OnInit, OnDestroy {
     clearTimeout( this.toastTimer );
     this.toastTimer = setTimeout( () => ( this.toast = '' ), 3200 );
   }
+}
+
+// The template footer (name · address, "You're receiving this because…", the links) as the
+// personal footer's one line, for the preview. The send fills in the workspace's own name and address.
+const TEMPLATE_FOOTER = /<p\b[^>]*>((?:(?!<\/?p\b)[\s\S])*)<\/p>\s*<p\b[^>]*>\s*You(?:'|&#39;|&rsquo;|\u2019)re receiving this because(?:(?!<\/?p\b)[\s\S])*<\/p>\s*<p\b[^>]*>(?:(?!<\/?p\b)[\s\S])*<\/p>/i;
+
+export function personalFooterPreview ( html: string ): string {
+  return html.replace( TEMPLATE_FOOTER, ( _match, who: string ) =>
+    `<p style="margin:0;">${ who.replace( /<[^>]+>/g, '' ).trim() } · Not for you? <a href="#" style="color:#6b7280;text-decoration:underline;">Let me know</a> and I won't write again.</p>` );
 }

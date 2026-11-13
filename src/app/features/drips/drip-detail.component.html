@@ -62,6 +62,14 @@
               <button type="button" class="secondary" (click)="saveLink(row)" [disabled]="busy || !row.to.trim() || row.to.trim() === row.from">Save</button>
             </div>
           </div>
+          <div class="fix__row">
+            <span class="fix__name" id="fix-footer">Footer</span>
+            <div class="seg seg--wide" role="radiogroup" aria-labelledby="fix-footer" data-cy="drip-footer">
+              <button type="button" role="radio" [class.is-on]="drip.footer !== 'personal'" [attr.aria-checked]="drip.footer !== 'personal'" (click)="setFooter('standard')" [disabled]="busy">Standard</button>
+              <button type="button" role="radio" [class.is-on]="drip.footer === 'personal'" [attr.aria-checked]="drip.footer === 'personal'" (click)="setFooter('personal')" [disabled]="busy">Personal</button>
+            </div>
+            <p class="note">{{ drip.footer === 'personal' ? 'One quiet line: your address and a "Let me know" link that unsubscribes. It reads like a personal email.' : 'The template\'s footer, like a newsletter.' }} The law asks for your address and a way out either way.</p>
+          </div>
           <p class="note" *ngIf="!linkRows.length">This email has no links to change.</p>
           <p class="note">A link change fixes every button and link that went there. To change the words or pictures, make it again in Email Creator and delete this drip.</p>
         </section>

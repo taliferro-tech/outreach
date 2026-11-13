@@ -30,6 +30,7 @@ export interface DripPatch {
   /** Until it starts: the subject, and links to point somewhere else. */
   subject?: string;
   links?: { from: string; to: string }[];
+  footer?: 'standard' | 'personal';
 }
 
 export interface AudienceQuery {
