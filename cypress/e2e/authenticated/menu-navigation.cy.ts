@@ -61,7 +61,7 @@ describe('Sidebar', () => {
       expect([...groups].map((group) => group.textContent?.trim().toUpperCase())).to.deep.equal(['MAIL', 'MARKETING ASSISTANT']);
     });
     cy.get('.sidebar__item .sidebar__label').then((labels) => {
-      expect([...labels].map((label) => label.textContent?.trim())).to.deep.equal(['Growth', 'Needs you', 'Inbox', 'Drafts', 'Outbox', 'Sent', 'Activity', 'Drips', 'Catalyst', 'Settings']);
+      expect([...labels].map((label) => label.textContent?.trim())).to.deep.equal(['Growth', 'Needs you', 'Inbox', 'Drafts', 'Outbox', 'Sent', 'Up next', 'Drips', 'Catalyst', 'Settings']);
     });
   });
 
@@ -74,7 +74,11 @@ describe('Sidebar', () => {
     cy.visit('/signal-engine?tab=outbox');
     cy.location('pathname', { timeout: 10000 }).should('eq', '/outbox');
     cy.visit('/signal-engine?tab=plan&filter=hot');
-    cy.location('search', { timeout: 10000 }).should('contain', 'tab=plan').and('contain', 'filter=hot');
-    cy.location('pathname').should('eq', '/maya-day');
+    cy.location('search', { timeout: 10000 }).should('contain', 'filter=hot');
+    cy.location('pathname').should('eq', '/up-next');
+    // Activity's pipeline links (2026-11-14) land on Up next too.
+    cy.visit('/maya-day?tab=plan&filter=queued');
+    cy.location('pathname', { timeout: 10000 }).should('eq', '/up-next');
+    cy.location('search').should('contain', 'filter=queued');
   });
 });

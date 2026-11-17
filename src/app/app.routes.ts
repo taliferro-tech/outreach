@@ -1,5 +1,8 @@
 import { inject } from '@angular/core';
-import { Router, Routes } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, Routes } from '@angular/router';
+
+/** What the Marketing Assistant did today: Today's Results tab (Ty, 2026-11-14). */
+export const TODAY_RESULTS_URL = 'https://app.16ahead.com/today?tab=results';
 
 // Browse free, create with the app: no route needs sign-in. Writes are
 // gated per action (WriteActionDirective) and enforced by the server.
@@ -118,9 +121,26 @@ export const routes: Routes = [
       import( './features/conversations/conversations.component' ).then( ( m ) => m.ConversationsComponent ),
   },
   {
-    path: 'maya-day',
+    // Who the Marketing Assistant writes to next (Ty, 2026-11-14; was Activity's second tab).
+    path: 'up-next',
     loadComponent: () =>
-      import( './features/maya-day/maya-day.component' ).then( ( m ) => m.MayaDayComponent ),
+      import( './features/up-next/up-next.component' ).then( ( m ) => m.UpNextComponent ),
+  },
+  {
+    // Activity is gone (Ty, 2026-11-14): its pipeline links land on Up next;
+    // "what the Marketing Assistant did" is Today's Results tab now.
+    path: 'maya-day',
+    pathMatch: 'full',
+    canActivate: [( route: ActivatedRouteSnapshot ) => {
+      const router = inject( Router );
+      const params = route.queryParams;
+      if ( params['tab'] === 'plan' || params['filter'] ) {
+        return router.createUrlTree( ['/up-next'], { queryParams: params['filter'] ? { filter: params['filter'] } : {} } );
+      }
+      if ( typeof window !== 'undefined' ) window.location.replace( TODAY_RESULTS_URL );
+      return false;
+    }],
+    children: [],
   },
   {
     path: 'needs-you',
@@ -128,7 +148,7 @@ export const routes: Routes = [
       import( './features/needs-you/needs-you.component' ).then( ( m ) => m.NeedsYouComponent ),
   },
   {
-    // Signal Engine split into Drafts, Outbox, Sent and Activity's Maya's
+    // Signal Engine split into Drafts, Outbox, Sent and Up next
     // plan (design_handoff_outreach_mail); old links land on the new pages.
     path: 'signal-engine',
     pathMatch: 'full',
@@ -137,7 +157,7 @@ export const routes: Routes = [
       switch ( queryParams['tab'] ) {
         case 'outbox': return router.createUrlTree( ['/outbox'] );
         case 'sent': return router.createUrlTree( ['/sent'] );
-        case 'plan': return router.createUrlTree( ['/maya-day'], { queryParams: { tab: 'plan', ...( queryParams['filter'] ? { filter: queryParams['filter'] } : {} ) } } );
+        case 'plan': return router.createUrlTree( ['/up-next'], { queryParams: queryParams['filter'] ? { filter: queryParams['filter'] } : {} } );
         default: return router.createUrlTree( ['/drafts'] );
       }
     },

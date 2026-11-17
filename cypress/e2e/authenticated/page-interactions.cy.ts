@@ -246,10 +246,10 @@ describe('Mail pages', () => {
     cy.contains('.mail-toast', 'Sending to Brad Aken now.');
   });
 
-  it("Activity's Maya's plan lists who Maya will contact next", () => {
-    cy.loginAsTestUser('/maya-day?tab=plan');
+  it('Up next lists who the Marketing Assistant will contact next', () => {
+    cy.loginAsTestUser('/up-next');
     cy.wait('@bootstrap', { timeout: 20000 });
-    cy.get('[data-cy="maya-day-tab-plan"]').should('have.class', 'is-on');
+    cy.get('[data-cy="up-next"]').should('contain', 'Up next');
     cy.contains('Theodore Ricks-Freeman');
   });
 });

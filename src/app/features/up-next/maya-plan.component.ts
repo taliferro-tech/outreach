@@ -143,7 +143,7 @@ export class MayaPlanComponent implements OnChanges {
     const replyDraft = !String( thread.draftSubject || thread.draftBody || '' ).trim()
       && !!String( thread.replyDraftSubject || thread.replyDraftBody || '' ).trim();
     try {
-      const returnRoute = this.router.createUrlTree( ['/maya-day'], { queryParams: { tab: 'plan' } } ).toString();
+      const returnRoute = this.router.createUrlTree( ['/up-next'] ).toString();
       const response = await firstValueFrom( this.api.createMomentumComposerHandoff( thread.contactId, {
         draftSubject: replyDraft ? thread.replyDraftSubject : ( thread.draftSubject || thread.rejectedDraftSubject || '' ),
         draftBody: replyDraft ? thread.replyDraftBody : ( thread.draftBody || thread.rejectedDraftBody || '' ),
