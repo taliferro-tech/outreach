@@ -51,7 +51,7 @@ export const Footer: string = `<hr><div style="text-align: center; margin-top: 1
     taliferro-tech-unsubscribe.
   </p>
   <p style="margin-top: 4px;">
-    Taliferro Tech, LLC &bull; 1424 11th Ave STE 400, Seattle, WA 98122 &bull; 401.646.2662 &bull; info@taliferro.com
+    Taliferro Tech, LLC &bull; 1424 11th Ave STE 400, Seattle, WA 98122 &bull; 425.790.9986 &bull; info@taliferro.com
   </p>
 </div>
 `;
