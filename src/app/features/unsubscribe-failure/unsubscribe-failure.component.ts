@@ -1,109 +1,64 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { OutreachDataService } from '../../services/outreach-data.service';
-import { LoggerService } from '../../services/logger.service';
 import { environment } from '../../../environments/environment';
 
+/** sha256 of the trimmed, lowercased address, as the unsubscribe link carries it. */
+export async function emailHash ( email: string ): Promise<string> {
+  const bytes = new TextEncoder().encode( String( email || '' ).trim().toLowerCase() );
+  const digest = await crypto.subtle.digest( 'SHA-256', bytes );
+  return Array.from( new Uint8Array( digest ) ).map( ( b ) => b.toString( 16 ).padStart( 2, '0' ) ).join( '' );
+}
+
 /**
- * Ported from features/email/pages/unsubscribe-failure/. Swapped the
- * monorepo's DataService ('CONTACTS'/'DELETED_CONTACTS' by endpoint key)
- * for OutreachDataService's getContactByEmail/deleteContact/addDeletedContact,
- * which hit the same `tenants/{tenantId}/contacts` and
- * `tenants/{tenantId}/deleted-contacts` collections directly.
+ * Where the unsubscribe link lands when the backend couldn't record it. The
+ * fallback form posts the typed address (hashed) to the same public one-click
+ * unsubscribe endpoint the inbox button uses, which marks the contact and adds
+ * the address to the workspace's do-not-email list. (Before 2026-11-17 it
+ * wrote contacts straight from the browser, which Firestore rules refuse for
+ * a visitor who isn't signed in, so it never worked.)
  */
 @Component( {
   selector: 'app-unsubscribe-failure',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule],
   templateUrl: './unsubscribe-failure.component.html',
   styleUrl: './unsubscribe-failure.component.css'
 } )
 export class UnsubscribeFailureComponent implements OnInit {
-  email: string = '';
-  statMessage: string;
-  errorMessage: string | null = null;
-  successMessage: string | null = null;
+  private readonly route = inject( ActivatedRoute );
+  email = '';
   tenantId: string | null = null;
-  isForm: boolean = true;
-  readonly COMPANY_NAME = environment.COMPANY_NAME;
-
-  private toddStats: string[] = [
-    `Did you know? ${this.COMPANY_NAME} helps businesses achieve measurable growth and streamline operations.`,
-    `Stay ahead of the competition! ${this.COMPANY_NAME} users report significant time savings with our smart tools.`,
-    `Maximize efficiency! Many users have seen improved workflows and reduced overhead after adopting ${this.COMPANY_NAME}.`,
-    `Boost your results! ${this.COMPANY_NAME} clients often experience higher engagement and better performance.`,
-    `Join thousands of professionals who rely on ${this.COMPANY_NAME} to simplify complex processes and stay organized.`
-  ];
-
-  constructor (
-    private dataService: OutreachDataService,
-    private route: ActivatedRoute,
-    private logger: LoggerService,
-  ) {
-    this.statMessage = this.getRandomStat();
-  }
+  busy = false;
+  done = false;
+  errorMessage: string | null = null;
 
   ngOnInit (): void {
     this.tenantId = this.route.snapshot.queryParamMap.get( 'tenantId' );
-    if ( !this.tenantId ) {
-      this.errorMessage = "Missing tenant ID. Cannot proceed.";
-    }
   }
 
-  private getRandomStat (): string {
-    const randomIndex = Math.floor( Math.random() * this.toddStats.length );
-    return this.toddStats[randomIndex];
-  }
-
-  onSubmit () {
-    if ( !this.tenantId ) {
-      this.errorMessage = "Cannot unsubscribe without a valid tenant ID.";
+  async onSubmit (): Promise<void> {
+    const email = this.email.trim();
+    if ( !email.includes( '@' ) ) {
+      this.errorMessage = 'Enter the email address the message was sent to.';
       return;
     }
-
-    this.errorMessage = null;
-    this.successMessage = null;
-
-    this.dataService.getContactByEmail( this.tenantId, this.email ).then( ( contact ) => {
-      if ( !contact ) {
-        this.errorMessage = "We could not find a contact with that email address.";
-        return;
-      }
-      this.deleteContact( contact );
-    } ).catch( ( error ) => {
-      this.errorMessage = "An error occurred while looking up your email address.";
-      this.logger.error( "Error in getContactByEmail:", error );
-    } );
-  }
-
-  private deleteContact ( contact: any ) {
-    if ( !this.tenantId ) return;
-
-    this.dataService.deleteContact( this.tenantId, contact.id ).then(
-      () => {
-        this.successMessage = "Removal in progress ... ";
-        this.moveToDeletedContacts( contact );
-        this.isForm = false;
-      },
-      ( error ) => {
-        this.errorMessage = "An error occurred while trying to unsubscribe.";
-        this.logger.error( "Error in unsubscribing:", error );
-      }
-    );
-  }
-
-  private moveToDeletedContacts ( contact: any ) {
-    if ( contact && this.tenantId ) {
-      this.dataService.addDeletedContact( this.tenantId, contact ).then( () => {
-        this.successMessage = "You have been successfully unsubscribed.";
-      } ).catch( error => {
-        this.errorMessage = "There was an issue moving your contact to deleted contacts.";
-        this.logger.error( "Error moving to deleted contacts:", error );
-      } );
+    if ( !this.tenantId ) {
+      this.errorMessage = 'This link is missing the sender\'s details. Reply to the email with "unsubscribe" and you\'ll be removed.';
+      return;
     }
-    this.isForm = false;
+    this.busy = true;
+    this.errorMessage = null;
+    try {
+      const params = new URLSearchParams( { emailHash: await emailHash( email ), tenantId: this.tenantId } );
+      const response = await fetch( `${ environment.backendURL }/unsubscribe?${ params }`, { method: 'POST' } );
+      if ( !response.ok ) throw new Error( String( response.status ) );
+      this.done = true;
+    } catch {
+      this.errorMessage = 'That didn\'t go through. Reply to the email with "unsubscribe" and you\'ll be removed.';
+    } finally {
+      this.busy = false;
+    }
   }
 }
