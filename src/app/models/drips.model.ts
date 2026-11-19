@@ -31,6 +31,8 @@ export interface DripCounters {
   unsubscribed: number;
   skipped: number;
   failed: number;
+  /** Skipped before sending, by reason: no_engagement (10 emails, no open/click/reply), bad_address (bounced before or failed validation). */
+  skippedFor?: Record<string, number>;
 }
 
 export interface DripStats {

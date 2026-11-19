@@ -659,6 +659,9 @@ export class DripDetailComponent implements OnInit, OnDestroy {
       { value: percent( stats?.clickers || 0, sent ), label: `clicked · ${ ( stats?.clickers || 0 ).toLocaleString( 'en-US' ) }` },
       { value: drip.counters.unsubscribed.toLocaleString( 'en-US' ), label: 'unsubscribed' },
       { value: drip.counters.bounced.toLocaleString( 'en-US' ), label: 'bounced' },
+      // Never sent, so not bounces (Ty, 2026-11-18: these were counted as bounced and read as a 42% bounce rate).
+      ...( drip.counters.skippedFor?.['no_engagement'] ? [{ value: drip.counters.skippedFor['no_engagement'].toLocaleString( 'en-US' ), label: 'skipped · no engagement' }] : [] ),
+      ...( drip.counters.skippedFor?.['bad_address'] ? [{ value: drip.counters.skippedFor['bad_address'].toLocaleString( 'en-US' ), label: 'not sent · bad address' }] : [] ),
     ];
 
     const labels = new Map( emailLinks( drip.html || '' ).map( ( link ) => [link.url, link.label] ) );
