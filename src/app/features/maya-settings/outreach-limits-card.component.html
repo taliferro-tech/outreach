@@ -1,0 +1,61 @@
+<section class="settings-card" aria-labelledby="limits-title" data-cy="outreach-limits">
+  <h2 id="limits-title">Limits and copies</h2>
+
+  <p class="note" *ngIf="loading()">Loading your limits…</p>
+
+  <form class="stack" [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading()">
+    <div class="todd-note">
+      <img src="/assets/avatar-todd-sm.png" alt="" />
+      <strong data-cy="outreach-limits-summary">{{ summary() }}</strong>
+    </div>
+
+    <div class="setcard">
+      <div class="setcard__text">
+        <label class="setcard__title" for="outreachBcc">
+          Auto-send BCC email
+          <span class="pill-green" *ngIf="ccValid()">Auto-send allowed</span>
+        </label>
+        <span class="setcard__help">Every email the Marketing Assistant sends by itself is blind-copied (BCC) here. Auto-send stays off until this is filled in.</span>
+      </div>
+      <div class="setcard__control">
+        <input class="text-input" id="outreachBcc" data-cy="outreach-limits-bcc" type="email" formControlName="autoSendCcEmail" placeholder="you@yourcompany.com" [class.is-invalid]="ccInvalid()" />
+      </div>
+    </div>
+
+    <div class="setcard">
+      <div class="setcard__text">
+        <span class="setcard__title">Daily draft target</span>
+        <span class="setcard__help">How many outreach drafts the Marketing Assistant prepares each morning (1 to 500).</span>
+      </div>
+      <div class="setcard__control">
+        <div class="stepper">
+          <button type="button" (click)="step('dailyDraftTarget', -10)" [disabled]="draftTarget() <= 1" aria-label="Fewer drafts">−</button>
+          <input type="number" min="1" max="500" formControlName="dailyDraftTarget" data-cy="outreach-limits-draft-target" aria-label="Daily draft target" />
+          <button type="button" (click)="step('dailyDraftTarget', 10)" [disabled]="draftTarget() >= 500" aria-label="More drafts">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="setcard">
+      <div class="setcard__text">
+        <span class="setcard__title">Daily auto-send cap</span>
+        <span class="setcard__help">The most emails the Marketing Assistant may send by itself in one day. Anything above this waits for review.</span>
+      </div>
+      <div class="setcard__control">
+        <div class="stepper">
+          <button type="button" (click)="step('dailyAutoSendTarget', -10)" [disabled]="autoSendTarget() <= 1" aria-label="Lower cap">−</button>
+          <input type="number" min="1" max="500" formControlName="dailyAutoSendTarget" data-cy="outreach-limits-auto-send-target" aria-label="Daily auto-send cap" />
+          <button type="button" (click)="step('dailyAutoSendTarget', 10)" [disabled]="autoSendTarget() >= 500" aria-label="Raise cap">+</button>
+        </div>
+      </div>
+    </div>
+
+    <p *ngIf="status()" [class.is-error]="statusIsError()" [class.is-ok]="!statusIsError()" class="msg" role="status" data-cy="outreach-limits-status">{{ status() }}</p>
+
+    <div class="savebar" *ngIf="changedLabel()">
+      <span class="savebar__text">{{ changedLabel() }}</span>
+      <button type="button" class="pill" (click)="discard()" [disabled]="saving()">Discard</button>
+      <button type="submit" class="pill pill--blue" appWriteAction="change the Marketing Assistant's limits" data-cy="outreach-limits-save" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save' }}</button>
+    </div>
+  </form>
+</section>

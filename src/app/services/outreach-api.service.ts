@@ -495,6 +495,13 @@ export interface MayaSettings {
   draftsWaiting: { count: number; limit: number; };
 }
 
+/** The workspace's draft target, auto-send cap and auto-send BCC (todd-backend momentumApprovalPolicy). */
+export interface OutreachLimits {
+  autoSendCcEmail: string;
+  dailyDraftTarget: number;
+  dailyAutoSendTarget: number;
+}
+
 /** The Marketing Assistant's review limits (mayaCreationGuard.service.js). */
 export interface MayaQueueHealth {
   blocked: boolean;
@@ -631,6 +638,17 @@ export class OutreachApiService {
   }> {
     const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
     return this.http.get<any>( `${this.baseUrl}/outreach/signal-engine/bootstrap`, { headers } );
+  }
+
+  /** Draft target, auto-send cap and auto-send BCC - momentumRoutes.js /momentum/approval-policy. */
+  getOutreachLimits ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { approvalPolicy: Partial<OutreachLimits>; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.get<{ success: boolean; data: { approvalPolicy: Partial<OutreachLimits>; }; }>( `${this.baseUrl}/momentum/approval-policy`, { headers, params: opts.tenantId ? { tenantId: opts.tenantId } : {} } );
+  }
+
+  saveOutreachLimits ( patch: Partial<OutreachLimits>, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { approvalPolicy: Partial<OutreachLimits>; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.post<{ success: boolean; data: { approvalPolicy: Partial<OutreachLimits>; }; }>( `${this.baseUrl}/momentum/approval-policy/config`, patch, { headers, params: opts.tenantId ? { tenantId: opts.tenantId } : {} } );
   }
 
   /** Whether the Marketing Assistant's review limits are holding new work back - momentumRoutes.js /momentum/maya-runs/status. */

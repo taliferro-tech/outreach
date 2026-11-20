@@ -9,6 +9,7 @@ import { OutreachAuthService } from '../../services/outreach-auth.service';
 import { BrowseNoticeComponent } from '../../shared/write-access/browse-notice.component';
 import { WriteActionDirective } from '../../shared/write-access/write-action.directive';
 import { PreloaderComponent } from '../../shared/preloader/preloader.component';
+import { OutreachLimitsCardComponent } from './outreach-limits-card.component';
 import { MOVES_TASKS_URL } from '../../shared/utils/activity-action.util';
 
 /**
@@ -21,7 +22,7 @@ import { MOVES_TASKS_URL } from '../../shared/utils/activity-action.util';
 @Component( {
   selector: 'app-maya-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BrowseNoticeComponent, WriteActionDirective, PreloaderComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BrowseNoticeComponent, WriteActionDirective, PreloaderComponent, OutreachLimitsCardComponent],
   templateUrl: './maya-settings.component.html',
   styleUrls: ['../../shared/mail/mail-page.css', './maya-settings.component.css'],
 } )
