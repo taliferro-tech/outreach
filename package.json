@@ -2,6 +2,7 @@
   "name": "outreach",
   "version": "2026.11.20-build.10",
   "scripts": {
+    "auth:ui": "npx google-artifactregistry-auth",
     "ng": "ng",
     "generate-version": "node scripts/generate-version.js",
     "prestart": "npm run generate-version",
@@ -35,7 +36,7 @@
     "@angular/service-worker": "^19.2.25",
     "@angular/ssr": "^19.2.27",
     "@fortawesome/fontawesome-free": "^7.3.1",
-    "@taliferro/ui": "file:../../taliferro-ui",
+    "@taliferro/ui": "^1.0.0",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "date-fns": "^4.4.0",

@@ -14,7 +14,6 @@
     "src/server.ts"
   ],
   "include": [
-    "src/**/*.d.ts",
-    "../../taliferro-ui/**/*.ts"
+    "src/**/*.d.ts"
   ]
 }
