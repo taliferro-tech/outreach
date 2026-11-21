@@ -5,6 +5,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InboxIconComponent } from '../inbox/inbox-icon.component';
+import { BrowseNoticeComponent } from '../../shared/write-access/browse-notice.component';
 import { OutreachAuthService } from '../../services/outreach-auth.service';
 import { AudiencePreview, AudienceQuery, DripCategory, DripPatch, DripsApiError, DripsApiService } from '../../services/drips-api.service';
 import { parseCsv } from '../../shared/utils/csv.util';
@@ -30,7 +31,7 @@ interface LinkRow { from: string; label: string; to: string }
 @Component( {
   selector: 'app-drip-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, InboxIconComponent],
+  imports: [CommonModule, FormsModule, RouterLink, InboxIconComponent, BrowseNoticeComponent],
   templateUrl: './drip-detail.component.html',
   styleUrls: ['./drips-shared.css', './drip-detail.component.css'],
 } )
@@ -129,7 +130,14 @@ export class DripDetailComponent implements OnInit, OnDestroy {
     } ) );
     // The server takes the workspace from the login token, so the signed-in user is all this waits for.
     this.subscriptions.push( this.auth.getUserId().subscribe( ( userId ) => {
-      if ( !userId || userId === this.userId ) return;
+      // Signed out, there is nothing to load: say so instead of "Loading" forever.
+      if ( !userId ) {
+        this.userId = '';
+        this.loading = false;
+        this.errorMessage = 'Sign in to see this drip.';
+        return;
+      }
+      if ( userId === this.userId ) return;
       this.userId = userId;
       void this.load();
     } ) );

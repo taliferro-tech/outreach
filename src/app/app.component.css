@@ -70,4 +70,16 @@
   .app-global-actions--shell ::ng-deep .um-trigger {
     display: inline-flex;
   }
+
+  /* The floating Menu button sits over the top-right corner, where the
+   * browse-mode note's Sign in button was: on a phone the note's words keep
+   * clear of it and Sign in drops to its own line. */
+  .app-frame--shell .app-frame__main ::ng-deep app-browse-notice .bn {
+    flex-wrap: wrap;
+    padding-right: 72px;
+  }
+
+  .app-frame--shell .app-frame__main ::ng-deep app-browse-notice .bn p {
+    flex-basis: 100%;
+  }
 }

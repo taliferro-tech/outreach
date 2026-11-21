@@ -1,4 +1,5 @@
 <div class="page">
+  <app-browse-notice what="Drips"></app-browse-notice>
   <header class="head">
     <img class="head__logo brand-mark--light" src="assets/brand/products/svg/light/05-outreach.svg" alt="" width="34" height="34"><img class="head__logo brand-mark--dark" src="assets/brand/products/svg/dark/05-outreach.svg" alt="" width="34" height="34">
     <div class="head__title">
@@ -11,6 +12,7 @@
   </header>
 
   <div class="state" *ngIf="loading">Loading your drips…</div>
+  <p class="state" *ngIf="signedOut" data-cy="drips-signed-out">A drip sends one email to a list a little at a time, for up to {{ maxDays }} days, so a newsletter or announcement goes out steadily instead of all at once. You build the email in Email Creator, then start it here. Sign in to see your drips.</p>
   <div class="state state--error" *ngIf="!loading && errorMessage">{{ errorMessage }}</div>
 
   <ng-container *ngIf="!loading && !errorMessage">

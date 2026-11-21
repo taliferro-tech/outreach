@@ -1,6 +1,6 @@
 import { AsyncPipe, NgIf, isPlatformBrowser } from '@angular/common';
 import { Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, NavigationError, Router, RouterOutlet } from '@angular/router';
 import { combineLatest, map } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
@@ -30,6 +30,8 @@ export class AppComponent implements OnInit {
   private readonly updates = inject( SwUpdate );
   private isReloadingForUpdate = false;
   private isRecoveringFromChunkError = false;
+  /** The page whose files failed to load; the router puts the address back, so the reload goes here instead. */
+  private failedNavigationUrl = '';
   private pendingUpdateVersion = '';
   readonly updateNoticeStorageKey = 'outreach-updated-version';
   readonly chunkRecoveryStorageKey = 'outreach-chunk-recovery-attempted';
@@ -69,6 +71,11 @@ export class AppComponent implements OnInit {
 
     window.addEventListener( 'error', this.handleWindowError, true );
     window.addEventListener( 'unhandledrejection', this.handleUnhandledRejection );
+    // The router catches a page file that failed to load, so the window never sees it (Safari).
+    this.router.events.pipe( filter( event => event instanceof NavigationError ) ).subscribe( ( event ) => {
+      const error = ( event as NavigationError ).error;
+      if ( this.isChunkLoadFailure( String( error?.message || error || '' ).toLowerCase() ) ) { this.failedNavigationUrl = ( event as NavigationError ).url; void this.recoverFromChunkFailure(); }
+    } );
 
     this.updates.versionUpdates.subscribe( event => {
       if ( event.type === 'VERSION_READY' ) {
@@ -102,6 +109,8 @@ export class AppComponent implements OnInit {
   private isChunkLoadFailure ( details: string ): boolean {
     return details.includes( 'failed to fetch dynamically imported module' ) ||
       details.includes( 'loading chunk' ) ||
+      details.includes( 'importing a module script failed' ) || // Safari
+      details.includes( 'is not a valid javascript mime type' ) || // Safari
       details.includes( 'expected a javascript module script' ) ||
       details.includes( 'mime type of "text/html"' );
   }
@@ -125,19 +134,32 @@ export class AppComponent implements OnInit {
 
     this.updateNotice = 'Outreach was updated. Refreshing now…';
     try {
-      if ( this.updates.isEnabled ) {
-        await this.updates.checkForUpdate();
-        await this.updates.activateUpdate();
-      }
+      if ( this.updates.isEnabled ) await this.withinSeconds( 4, this.refreshServiceWorker() );
     } catch ( error ) {
       console.warn( '[OutreachChunkRecovery] service worker refresh failed; reloading anyway', error );
     }
-    window.location.reload();
+    this.reloadToFailedPage();
+  }
+
+  private async refreshServiceWorker (): Promise<void> {
+    await this.updates.checkForUpdate();
+    await this.updates.activateUpdate();
+  }
+
+  /** The service worker may not be registered yet (it waits for the app to settle), and then its calls never answer: reload anyway. */
+  private withinSeconds ( seconds: number, work: Promise<void> ): Promise<void> {
+    return Promise.race( [work, new Promise<void>( ( resolve ) => setTimeout( resolve, seconds * 1000 ) )] );
+  }
+
+  private reloadToFailedPage (): void {
+    const target = this.failedNavigationUrl;
+    if ( target && target !== this.router.url ) window.location.assign( target );
+    else window.location.reload();
   }
 
   refreshAfterChunkError (): void {
     try { sessionStorage.removeItem( this.chunkRecoveryStorageKey ); } catch { }
-    window.location.reload();
+    this.reloadToFailedPage();
   }
 
   dismissUpdateNotice (): void {
@@ -196,8 +218,7 @@ export class AppComponent implements OnInit {
 
     if ( this.updates.isEnabled ) {
       try {
-        await this.updates.checkForUpdate();
-        await this.updates.activateUpdate();
+        await this.withinSeconds( 4, this.refreshServiceWorker() );
       } catch ( error ) {
         console.warn( '[OutreachVersionCheck] service worker activation failed; reloading anyway', error );
       }

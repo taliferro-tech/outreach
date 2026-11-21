@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { TimeoutError, firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Drip, DripAudience, DripConflict, DripDetail } from '../models/drips.model';
 
@@ -50,6 +50,9 @@ export interface AudiencePreview {
   skipped?: number;
   withLine?: number;
 }
+
+/** How long any Drips call may take before it gives up with a message. */
+export const DRIPS_API_TIMEOUT_MS = 45000;
 
 /** todd-backend /outreach/drips; the interceptors add the ID token and tenant. */
 @Injectable( { providedIn: 'root' } )
@@ -119,8 +122,12 @@ export class DripsApiService {
       const request = method === 'GET' ? this.http.get<{ data: T }>( url ) :
         method === 'DELETE' ? this.http.delete<{ data: T }>( url ) :
         method === 'PATCH' ? this.http.patch<{ data: T }>( url, body ) : this.http.post<{ data: T }>( url, body );
-      return ( await firstValueFrom( request ) ).data;
+      // Every call ends: a server that never answers becomes an error message, not an endless "Loading".
+      return ( await firstValueFrom( request.pipe( timeout( DRIPS_API_TIMEOUT_MS ) ) ) ).data;
     } catch ( error ) {
+      if ( error instanceof TimeoutError ) {
+        throw new DripsApiError( '16Ahead took too long to answer. Check your connection and try again.', 0, 'timeout', null );
+      }
       if ( error instanceof HttpErrorResponse ) {
         const message = error.status === 0 ? 'Could not reach 16Ahead. Check your connection and try again.' : error.error?.message || 'Something went wrong. Please try again.';
         throw new DripsApiError( message, error.status, error.error?.code || null, error.error?.conflict || null );

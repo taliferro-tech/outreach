@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Observable, TimeoutError, catchError, map, throwError, timeout } from 'rxjs';
+import { Observable, TimeoutError, catchError, map, of, throwError, timeout } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { LoggerService } from './logger.service';
@@ -318,7 +318,9 @@ export class EmailService {
       `${environment.backendURL}/email-drafting/metadata`,
       { headers }
     ).pipe(
-      map( response => response?.data || { stages: [], tones: [] } )
+      map( response => response?.data || { stages: [], tones: [] } ),
+      // Signed out (or offline) the lists are just empty; an unhandled error here only filled the console.
+      catchError( () => of( { stages: [], tones: [] } as EmailDraftingMetadata ) )
     );
   }
 

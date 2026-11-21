@@ -3,6 +3,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InboxIconComponent } from '../inbox/inbox-icon.component';
+import { BrowseNoticeComponent } from '../../shared/write-access/browse-notice.component';
 import { OutreachAuthService } from '../../services/outreach-auth.service';
 import { DripsApiService } from '../../services/drips-api.service';
 import {
@@ -45,7 +46,7 @@ interface ListRow {
 @Component( {
   selector: 'app-drips',
   standalone: true,
-  imports: [CommonModule, RouterLink, InboxIconComponent],
+  imports: [CommonModule, RouterLink, InboxIconComponent, BrowseNoticeComponent],
   templateUrl: './drips.component.html',
   styleUrls: ['./drips-shared.css', './drips.component.css'],
 } )
@@ -61,6 +62,8 @@ export class DripsComponent implements OnInit, OnDestroy {
   readonly maxDays = DRIP_MAX_DAYS;
   userId = '';
   loading = true;
+  /** Signed out: the page explains Drips and shows empty slots instead of waiting for a login that isn't coming. */
+  signedOut = false;
   errorMessage = '';
   slotLabel = '';
   slots: SlotCard[] = [];
@@ -73,9 +76,18 @@ export class DripsComponent implements OnInit, OnDestroy {
 
   ngOnInit (): void {
     // The server takes the workspace from the login token, so the signed-in user is all this waits for.
+    // Signed out, there is nothing to load: show the empty preview instead of "Loading" forever.
     this.tenantSubscription = this.auth.getUserId().subscribe( ( userId ) => {
-      if ( !userId || userId === this.userId ) return;
+      if ( !userId ) {
+        this.userId = '';
+        this.signedOut = true;
+        this.loading = false;
+        this.build( [] );
+        return;
+      }
+      if ( userId === this.userId ) return;
       this.userId = userId;
+      this.signedOut = false;
       void this.load();
     } );
     this.timer = setInterval( () => this.tickCountdowns(), 1000 );

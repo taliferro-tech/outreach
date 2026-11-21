@@ -225,7 +225,6 @@ export class EmailerComponent implements OnInit, OnDestroy, AfterViewInit, OnCha
 
   ngOnInit (): void {
     this.checkTenant();
-    this.loadDraftingMetadata();
     this.emitAssistantContext();
 
     this.assistantBus.setAssistantPageContext( this.buildAssistantContext() );
@@ -360,6 +359,8 @@ export class EmailerComponent implements OnInit, OnDestroy, AfterViewInit, OnCha
     this.getUserSubscription = this.authService.getUser().subscribe( user => {
       if ( user ) {
         this.userId = user.uid;
+        // Tones and stages need a signed-in caller; signed out the server only answers 401.
+        if ( !this.metadataSubscription ) this.loadDraftingMetadata();
 
         this.dataService.getContact( this.tenantId, this.userId ).then( contact => {
           if ( contact ) {

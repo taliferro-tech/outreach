@@ -441,7 +441,8 @@ export class EmailProcessorComponent extends TopDogComponent {
       .sort( ( a, b ) => b[1] - a[1] ).slice( 0, 100 )
       .sort( ( a, b ) => a[0].localeCompare( b[0], undefined, { sensitivity: 'base' } ) )
       .map( ( [name, count] ) => ( { key: `category:${ name }`, name, count } ) );
-    if ( !isDesignPreview() ) {
+    // Saved audiences belong to a workspace; signed out there are none to ask for.
+    if ( !isDesignPreview() && this.userId ) {
       this.dripsApi.audiences()
         .then( ( audiences ) => this.savedAudiences = audiences.map( ( audience ) => ( { key: `audience:${ audience.id }`, name: audience.name, count: audience.count } ) ) )
         .catch( () => this.savedAudiences = [] );
