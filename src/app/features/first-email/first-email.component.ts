@@ -38,8 +38,8 @@ export class FirstEmailComponent implements OnInit, OnDestroy {
   selected = 0;
   loading = true;
   working = false;
-  /** Why there's nothing to review: no contacts yet, or drafting needs Outreach. */
-  blocked: 'contacts' | 'subscription' | null = null;
+  /** Why there's nothing to review: signed out (browse mode), no contacts yet, or drafting needs Outreach. */
+  blocked: 'signedOut' | 'contacts' | 'subscription' | null = null;
   errorMessage = '';
   private timer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
@@ -47,6 +47,13 @@ export class FirstEmailComponent implements OnInit, OnDestroy {
   async ngOnInit (): Promise<void> {
     this.title.setTitle( 'Your first email — Outreach' );
     await getAuth().authStateReady();
+    // Signed out there's no batch to load (the API answers 401, which used to
+    // leave the page blank): show what the page does, in browse mode.
+    if ( !getAuth().currentUser ) {
+      this.blocked = 'signedOut';
+      this.loading = false;
+      return;
+    }
     void this.setup.refresh();
     try {
       const { batch: latest, compliance } = await this.api.latest();

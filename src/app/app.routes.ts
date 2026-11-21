@@ -8,6 +8,8 @@ export const TODAY_RESULTS_URL = 'https://app.16ahead.com/today?tab=results';
 // gated per action (WriteActionDirective) and enforced by the server.
 import { landingRedirectGuard } from './services/landing-redirect.guard';
 import { networkArrivalGuard } from './services/network-arrival.guard';
+import { OutreachAuthService } from './services/outreach-auth.service';
+import { map, take } from 'rxjs/operators';
 
 export const routes: Routes = [
   {
@@ -137,8 +139,16 @@ export const routes: Routes = [
       if ( params['tab'] === 'plan' || params['filter'] ) {
         return router.createUrlTree( ['/up-next'], { queryParams: params['filter'] ? { filter: params['filter'] } : {} } );
       }
-      if ( typeof window !== 'undefined' ) window.location.replace( TODAY_RESULTS_URL );
-      return false;
+      // Today needs an account, so signed out it would bounce to sign-in;
+      // browse Up next (Activity's other half) instead.
+      return inject( OutreachAuthService ).isLoggedIn().pipe(
+        take( 1 ),
+        map( ( signedIn ) => {
+          if ( !signedIn ) return router.createUrlTree( ['/up-next'] );
+          if ( typeof window !== 'undefined' ) window.location.replace( TODAY_RESULTS_URL );
+          return false;
+        } ),
+      );
     }],
     children: [],
   },

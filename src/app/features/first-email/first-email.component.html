@@ -16,6 +16,14 @@
         <a class="fe-btn" routerLink="/compose-email" [queryParams]="{ draft: 'profile' }">Open the composer</a>
       </div>
     </div>
+  } @else if (blocked === 'signedOut') {
+    <div class="fe-intro" data-cy="first-email-browse">
+      <span class="fe-tag"><span class="fe-dot" aria-hidden="true"></span>Browse mode</span>
+      <h1>Your first email, written by the Marketing Assistant</h1>
+      <p>You’re in browse mode. Here the Marketing Assistant writes one personal email for each contact you pick in Network, from your profile and what Network knows about them. You read each version, then send them from your own inbox a few minutes apart.</p>
+      <p>Sign in to see your first emails and send them.</p>
+      <app-browse-notice what="your first email"></app-browse-notice>
+    </div>
   } @else if (blocked === 'subscription') {
     <div class="fe-intro">
       <h1>Your first email, written by the Marketing Assistant</h1>
