@@ -28,12 +28,6 @@ export class LandingComponent implements AfterViewInit, OnDestroy {
   tourWatched = false;
   private opener: HTMLElement | null = null;
 
-  readonly metrics = [
-    { value: '3×', label: 'more follow-up clarity', detail: 'One view for the message, the signal, and the next step.' },
-    { value: '24/7', label: 'signal awareness', detail: 'Know what changed while you were away from your desk.' },
-    { value: '1', label: 'focused workspace', detail: 'Campaign context stays connected from first send to reply.' },
-    { value: '0', label: 'guesswork moments', detail: 'Let real engagement shape what happens next.' }
-  ];
   readonly outcomes = [
     [ 'Before the send', 'Know if the angle will land before it lands wrong.', '16Ahead evaluates audience fit, clarity, offer strength, urgency, friction, and campaign usefulness before launch.' ],
     [ 'During the build', 'Plan the full follow-up path before step one goes out.', 'Multi-step sequences, delays, and conditional routing are ready before the first email.' ],
