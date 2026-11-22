@@ -2,7 +2,7 @@ describe('Public pages', () => {
   it('loads the landing page', () => {
     cy.visit('/');
     cy.contains('Outreach');
-    cy.contains('more follow-up clarity');
+    cy.contains('Questions, answered');
   });
 
   // Playback itself isn't asserted: Cypress's default Electron browser has no
