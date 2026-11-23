@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -41,6 +41,8 @@ export class DripDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject( ActivatedRoute );
   private readonly router = inject( Router );
   private readonly sanitizer = inject( DomSanitizer );
+  private readonly zone = inject( NgZone );
+  private readonly cdr = inject( ChangeDetectorRef );
   private subscriptions: Subscription[] = [];
   private clock?: ReturnType<typeof setInterval>;
   private poll?: ReturnType<typeof setInterval>;
@@ -141,7 +143,16 @@ export class DripDetailComponent implements OnInit, OnDestroy {
       this.userId = userId;
       void this.load();
     } ) );
-    this.clock = setInterval( () => this.tickClock(), 1000 );
+    // The "Next send in 1:11" countdown ticks outside Angular and redraws only
+    // this page, only when the words change: a 1-second timer inside the zone
+    // re-checked the whole app every second and kept phones 30-40% busy (2026-11-23).
+    this.zone.runOutsideAngular( () => {
+      this.clock = setInterval( () => {
+        const before = this.soFarEnd;
+        this.tickClock();
+        if ( this.soFarEnd !== before ) this.cdr.detectChanges();
+      }, 1000 );
+    } );
     // Every 10s: a starting drip refreshes each time, a running one every third time.
     let polls = 0;
     this.poll = setInterval( () => {

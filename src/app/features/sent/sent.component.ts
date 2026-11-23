@@ -18,7 +18,17 @@ interface GroupView {
   title: string;
   hint: string;
   rows: SentRow[];
+  /** The rows drawn so far: the first PAGE, then PAGE more per "Show more". */
+  visible: SentRow[];
+  /** "Show 50 more" wording, or "" when every row is drawn. */
+  more: string;
 }
+
+/**
+ * Rows drawn per group at first (2026-11-23): the main workspace sends ~4,000
+ * emails a month, and drawing every row froze the page on a phone.
+ */
+const PAGE = 50;
 
 const GROUPS: Array<{ id: SentGroup; title: string; hint: string; }> = [
   { id: 'replies', title: 'Your replies', hint: 'Answers you sent from Inbox' },
@@ -59,6 +69,8 @@ export class SentComponent implements OnInit, OnDestroy {
   by: SentBy | 'all' = 'all';
   /** "No response yet" starts collapsed. */
   collapsed = new Set<SentGroup>( ['none'] );
+  /** How many rows each group draws (PAGE until "Show more"). */
+  private shown = new Map<SentGroup, number>();
   followUps = new Map<string, FollowUpState>();
   toast: MailToast | null = null;
 
@@ -113,10 +125,23 @@ export class SentComponent implements OnInit, OnDestroy {
     // Newest first inside each group (Ty, 2026-11-12: clicks-first hid what he just sent).
     const sorted = [...rows].sort( ( a, b ) => ( b.sentAt?.getTime() || 0 ) - ( a.sentAt?.getTime() || 0 ) );
     this.groups = GROUPS
-      .map( ( group ) => ( { ...group, rows: sorted.filter( ( row ) => row.group === group.id ) } ) )
+      .map( ( group ) => this.view( { ...group, rows: sorted.filter( ( row ) => row.group === group.id ), visible: [], more: '' } ) )
       .filter( ( group ) => group.rows.length );
     const engaged = rows.filter( ( row ) => row.group === 'engaged' || row.group === 'opened' ).length;
     this.subtitle = `${ rows.length } sent in the last 30 days. ${ engaged } opened or clicked.${ rows.some( ( row ) => row.clicks ) ? ' The people who clicked are at the top.' : '' }`;
+  }
+
+  private view ( group: GroupView ): GroupView {
+    const count = Math.min( group.rows.length, this.shown.get( group.id ) || PAGE );
+    group.visible = group.rows.slice( 0, count );
+    const left = group.rows.length - count;
+    group.more = left > 0 ? `Show ${ Math.min( left, PAGE ) } more of ${ left }` : '';
+    return group;
+  }
+
+  showMore ( group: GroupView ): void {
+    this.shown.set( group.id, group.visible.length + PAGE );
+    this.view( group );
   }
 
   toggle ( group: SentGroup ): void {

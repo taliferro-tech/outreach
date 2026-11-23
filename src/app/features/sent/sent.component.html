@@ -27,7 +27,7 @@
             <span class="group__toggle">{{ collapsed.has(group.id) ? 'Show' : 'Hide' }}</span>
         </div>
         <ng-container *ngIf="!collapsed.has(group.id)">
-            <article class="sent-row" *ngFor="let row of group.rows; trackBy: trackByRow" [attr.data-cy]="'sent-row-' + row.id">
+            <article class="sent-row" *ngFor="let row of group.visible; trackBy: trackByRow" [attr.data-cy]="'sent-row-' + row.id">
                 <div class="sent-row__main">
                     <div class="sent-row__who"><strong [title]="row.email">{{ row.name }}</strong><span *ngIf="row.company">{{ row.company }}</span></div>
                     <span class="sent-row__subject">{{ row.subject }}</span>
@@ -45,6 +45,7 @@
                     <ng-template #nextStep><span class="next" *ngIf="row.next">{{ row.next }}</span></ng-template>
                 </div>
             </article>
+            <button type="button" class="show-more" *ngIf="group.more" (click)="showMore(group)" [attr.data-cy]="'sent-more-' + group.id">{{ group.more }}</button>
         </ng-container>
     </section>
 

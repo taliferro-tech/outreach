@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InboxIconComponent } from '../inbox/inbox-icon.component';
@@ -54,6 +54,8 @@ export class DripsComponent implements OnInit, OnDestroy {
   private readonly api = inject( DripsApiService );
   private readonly auth = inject( OutreachAuthService );
   private readonly router = inject( Router );
+  private readonly zone = inject( NgZone );
+  private readonly cdr = inject( ChangeDetectorRef );
   private tenantSubscription?: Subscription;
   private timer?: ReturnType<typeof setInterval>;
   private toastTimer?: ReturnType<typeof setTimeout>;
@@ -90,7 +92,13 @@ export class DripsComponent implements OnInit, OnDestroy {
       this.signedOut = false;
       void this.load();
     } );
-    this.timer = setInterval( () => this.tickCountdowns(), 1000 );
+    // Countdowns tick outside Angular and redraw only this page, only when one
+    // changed (2026-11-23: a 1-second timer in the zone re-checked the whole app).
+    this.zone.runOutsideAngular( () => {
+      this.timer = setInterval( () => {
+        if ( this.tickCountdowns() ) this.cdr.detectChanges();
+      }, 1000 );
+    } );
   }
 
   ngOnDestroy (): void {
@@ -158,12 +166,19 @@ export class DripsComponent implements OnInit, OnDestroy {
     this.tickCountdowns();
   }
 
-  private tickCountdowns (): void {
+  /** Moves each slot's countdown; true when any words changed. */
+  private tickCountdowns (): boolean {
     const now = Date.now();
+    let changed = false;
     this.slots.forEach( ( slot ) => {
       if ( slot.nextSendAt === null ) return;
-      slot.next = slot.nextSendAt > now ? `Next send in ${ countdown( slot.nextSendAt - now ) }` : 'Next send soon';
+      const next = slot.nextSendAt > now ? `Next send in ${ countdown( slot.nextSendAt - now ) }` : 'Next send soon';
+      if ( next !== slot.next ) {
+        slot.next = next;
+        changed = true;
+      }
     } );
+    return changed;
   }
 
   private showToast ( text: string ): void {

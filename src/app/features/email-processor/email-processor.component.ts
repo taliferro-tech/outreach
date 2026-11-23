@@ -250,7 +250,12 @@ export class EmailProcessorComponent extends TopDogComponent {
 
       this.contactsLoadFailed = '';
       const started = Date.now();
-      const raw = await withTimeout( this.dataService.getAllContacts( this.tenantId ), CONTACTS_LOAD_TIMEOUT_MS );
+      // Only the fields Catalyst chooses with (2026-11-23): the whole
+      // collection was ~180 MB for the main workspace and froze the page.
+      // The emailer reads each person's full record just before writing to them.
+      const raw = await withTimeout( firstValueFrom( this.outreachApi.getCatalystContacts( {
+        tenantId: this.tenantId, userId: this.userId, userEmail: this.firebaseUser?.email || undefined,
+      } ) ).then( ( response ) => response?.data?.contacts || [] ), CONTACTS_LOAD_TIMEOUT_MS );
       const seconds = Math.round( ( Date.now() - started ) / 100 ) / 10;
       if ( seconds > 5 ) this.logger.warn( `EmailProcessor: ${ ( raw || [] ).length } contacts took ${ seconds }s to load` );
       this.liteContacts = ( raw || [] ) as Contact[];

@@ -41,8 +41,13 @@ export class NeedsYouCountService {
       take( 1 )
     ) );
     try {
-      const response = await firstValueFrom( this.api.getSignalEngineBootstrap( { tenantId: String( tenantId ), userId: user?.uid, userEmail: user?.email || undefined } ) );
-      this.setFromThreads( Array.isArray( response?.data?.threads ) ? response.data.threads : [] );
+      // Only the counts (2026-11-23): every thread was megabytes to parse on
+      // pages that show none of them.
+      const response = await firstValueFrom( this.api.getSignalEngineCounts( { tenantId: String( tenantId ), userId: user?.uid, userEmail: user?.email || undefined } ) );
+      const counts = response?.data?.counts;
+      if ( !counts ) return;
+      this.set( Number( counts.needsYou ) || 0 );
+      this.mailSubject.next( { drafts: Number( counts.drafts ) || 0, outbox: Number( counts.outbox ) || 0 } );
     } catch {
       // The badge just stays as it was.
     }

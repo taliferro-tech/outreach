@@ -27,7 +27,7 @@
         <ng-container *ngIf="!closed[group.key]">
             <div class="empty" *ngIf="!group.rows.length">No one here for this filter.</div>
 
-            <article class="row" *ngFor="let row of visibleRows(group); trackBy: trackRow" [class.row--you]="row.needsYou">
+            <article class="row" *ngFor="let row of group.visible; trackBy: trackRow" [class.row--you]="row.needsYou">
                 <div class="row__top">
                     <strong class="row__name">{{ row.name }}</strong>
                     <span class="row__company" *ngIf="row.company">{{ row.company }}</span>
@@ -52,7 +52,7 @@
                 </div>
             </article>
 
-            <button type="button" class="show-all" *ngIf="group.rows.length > cap && !showAll[group.key]" (click)="showAll[group.key] = true">
+            <button type="button" class="show-all" *ngIf="group.rows.length > cap && !showAll[group.key]" (click)="showAllRows(group)">
                 Show all {{ group.rows.length }}
             </button>
         </ng-container>

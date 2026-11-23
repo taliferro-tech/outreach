@@ -592,6 +592,32 @@ export class EmailerComponent implements OnInit, OnDestroy, AfterViewInit, OnCha
     this.isloading = true;
     this.emitAssistantContext();
 
+    // Catalyst's list has only the fields it chooses with (_lite); read the
+    // person's whole record before writing to them, as before.
+    if ( ( next as any )._lite ) {
+      void this.withFullRecord( next ).then( ( full ) => {
+        if ( this.bulkCurrentContact !== next || this.stopSending || !this.bulkIsRunning ) return;
+        this.bulkCurrentContact = full;
+        this.draftFor( full );
+      } );
+      return;
+    }
+    this.draftFor( next );
+  }
+
+  /** The contact's full record, or the list row itself (without _lite) when it can't be read. */
+  private async withFullRecord ( contact: EmailerContactLite ): Promise<EmailerContactLite> {
+    const { _lite, ...row } = contact as any;
+    try {
+      const full = await this.dataService.getContact( this.tenantId, String( contact.id || '' ) );
+      return full ? ( full as any ) : row;
+    } catch ( error ) {
+      this.logger.error( 'Catalyst: could not read the full contact record', error );
+      return row;
+    }
+  }
+
+  private draftFor ( next: EmailerContactLite ): void {
     if ( this.useTemplate ) {
       ( next as any )._insight = '';
       this.contactInsight = '';

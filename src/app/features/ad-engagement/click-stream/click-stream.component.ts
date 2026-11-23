@@ -160,7 +160,7 @@ export class ClickStreamComponent extends TopDogComponent implements OnInit, OnD
 
         this.clickEvents = append ? [...this.clickEvents, ...mapped] : mapped;
         this.topCampaigns = Array.isArray( result?.summary?.topCampaigns ) ? result.summary.topCampaigns : [];
-        this.resolveCampaignNames();
+        this.resolveCampaignNames( result?.campaignNames );
         this.nextCursor = result?.nextCursor || null;
         this.hasMore = !!result?.hasMore;
         this.error = null;
@@ -204,7 +204,19 @@ export class ClickStreamComponent extends TopDogComponent implements OnInit, OnD
     return this.campaignNameMap.get( value ) || value;
   }
 
-  private resolveCampaignNames (): void {
+  /**
+   * Names from the click stream itself (2026-11-23); a campaign it doesn't
+   * name was deleted. Asking for each one separately is only the fallback
+   * for a server that doesn't send names yet.
+   */
+  private resolveCampaignNames ( names?: Record<string, string> ): void {
+    if ( names && typeof names === 'object' ) {
+      [...this.topCampaigns.map( c => c?.campaign ), ...this.clickEvents.map( event => event?.campaign )]
+        .map( value => ( value || '' ).trim() )
+        .filter( value => !!value && value !== 'N/A' )
+        .forEach( id => this.campaignNameMap.set( id, names[id] || 'A deleted campaign' ) );
+      return;
+    }
     const ids = Array.from(
       new Set(
         [

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, finalize, shareReplay } from 'rxjs';
 import { LoggerService } from './logger.service';
 import { Campaign, CatalystRun, LeadVaultAudiencePreview } from '../models/email.model';
 import { Contact } from '../models/contact.model';
@@ -636,8 +636,41 @@ export class OutreachApiService {
       generatedAt: string;
     };
   }> {
+    // One request at a time per workspace: the sidebar badge and the page
+    // both ask on arrival, and each answer is the same (2026-11-23). Nothing
+    // is kept once it lands, so a reload after an action is always fresh.
+    const key = String( opts.tenantId || '' );
+    const inFlight = this.bootstrapInFlight.get( key );
+    if ( inFlight ) return inFlight;
     const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
-    return this.http.get<any>( `${this.baseUrl}/outreach/signal-engine/bootstrap`, { headers } );
+    // view=screens: each thread without the server-only fields (its content
+    // evaluation, action log, sent HTML), about a third of the size.
+    const request = this.http.get<any>( `${this.baseUrl}/outreach/signal-engine/bootstrap`, { headers, params: { view: 'screens' } } ).pipe(
+      finalize( () => this.bootstrapInFlight.delete( key ) ),
+      shareReplay( { bufferSize: 1, refCount: false } ),
+    );
+    this.bootstrapInFlight.set( key, request );
+    return request;
+  }
+
+  private readonly bootstrapInFlight = new Map<string, Observable<any>>();
+
+  /** Just the sidebar's Needs you, Drafts and Outbox counts, counted the way the pages count (bootstrap ?view=counts). */
+  getSignalEngineCounts ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { counts: { needsYou: number; drafts: number; outbox: number; }; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.get<{ success: boolean; data: { counts: { needsYou: number; drafts: number; outbox: number; }; }; }>( `${this.baseUrl}/outreach/signal-engine/bootstrap`, { headers, params: { view: 'counts' } } );
+  }
+
+  /** Needs You's threads and count, read directly instead of every live thread (momentum.controller.js getWebNeedsYou). */
+  getNeedsYou ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { threads: MomentumThread[]; count: number; planCount: number | null; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.get<{ success: boolean; data: { threads: MomentumThread[]; count: number; planCount: number | null; }; }>( `${this.baseUrl}/outreach/needs-you`, { headers } );
+  }
+
+  /** Catalyst's contact list: every contact, only the fields it chooses with; each row has _lite: true (outreachRoutes.js). */
+  getCatalystContacts ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: { contacts: Contact[]; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.get<{ success: boolean; data: { contacts: Contact[]; }; }>( `${this.baseUrl}/outreach/catalyst/contacts`, { headers } );
   }
 
   /** Draft target, auto-send cap and auto-send BCC - momentumRoutes.js /momentum/approval-policy. */

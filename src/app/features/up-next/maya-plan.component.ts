@@ -38,6 +38,8 @@ interface PlanGroup {
   title: string;
   hint: string;
   rows: PlanRow[];
+  /** The rows drawn: the first GROUP_CAP until "Show all", precomputed for the template. */
+  visible: PlanRow[];
 }
 
 const GROUP_CAP = 50;
@@ -126,8 +128,9 @@ export class MayaPlanComponent implements OnChanges {
     this.closed[key] = !this.closed[key];
   }
 
-  visibleRows ( group: PlanGroup ): PlanRow[] {
-    return this.showAll[group.key] ? group.rows : group.rows.slice( 0, GROUP_CAP );
+  showAllRows ( group: PlanGroup ): void {
+    this.showAll[group.key] = true;
+    group.visible = group.rows;
   }
 
   trackRow ( _index: number, row: PlanRow ): string {
@@ -173,13 +176,14 @@ export class MayaPlanComponent implements OnChanges {
     const filtered = this.rows.filter( matches );
     const week = weekRange( new Date() );
     const groups: PlanGroup[] = [
-      { key: 'today', title: 'Today', hint: 'people waiting on you come first', rows: [] },
-      { key: 'week', title: 'This week', hint: week.label, rows: [] },
-      { key: 'later', title: 'Later', hint: 'mostly pauses and final tries', rows: [] },
+      { key: 'today', title: 'Today', hint: 'people waiting on you come first', rows: [], visible: [] },
+      { key: 'week', title: 'This week', hint: week.label, rows: [], visible: [] },
+      { key: 'later', title: 'Later', hint: 'mostly pauses and final tries', rows: [], visible: [] },
     ];
     for ( const row of filtered ) groups.find( ( group ) => group.key === row.when )!.rows.push( row );
     for ( const group of groups ) {
       group.rows.sort( ( a, b ) => Number( b.needsYou ) - Number( a.needsYou ) || a.at - b.at || a.name.localeCompare( b.name ) );
+      group.visible = this.showAll[group.key] ? group.rows : group.rows.slice( 0, GROUP_CAP );
     }
     this.groups = groups;
   }

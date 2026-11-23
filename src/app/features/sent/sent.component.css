@@ -69,6 +69,7 @@ h1 {
 
 .by select:focus-visible,
 .group__head:focus-visible,
+.show-more:focus-visible,
 .pill:focus-visible,
 .ready:focus-visible {
   outline: 2px solid var(--blue);
@@ -262,4 +263,22 @@ h1 {
   .next {
     text-align: left;
   }
+}
+
+/* "Show 50 more": the rest of a long group, a page at a time. */
+.show-more {
+  align-self: flex-start;
+  height: 36px;
+  margin-top: 4px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text);
+  font: 700 14px var(--font);
+  cursor: pointer;
+}
+
+.show-more:hover {
+  background: var(--surface);
 }

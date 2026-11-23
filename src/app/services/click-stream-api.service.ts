@@ -26,6 +26,8 @@ export interface ClickStreamListResult {
     hasMore: boolean;
     nextCursor: string | null;
     summary: ClickStreamSummary;
+    /** Names of the campaigns the clicks came from; a deleted campaign isn't in it (2026-11-23). */
+    campaignNames?: Record<string, string>;
 }
 
 export interface ClickStreamApiResponse {

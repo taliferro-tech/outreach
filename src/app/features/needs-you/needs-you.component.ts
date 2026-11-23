@@ -80,6 +80,7 @@ export class NeedsYouComponent implements OnInit, OnDestroy {
   toast: { text: string; canUndo: boolean; } | null = null;
   private pendingDone: PendingDone | null = null;
   private toastTimer?: ReturnType<typeof setTimeout>;
+  private loadedFor = '';
 
   readonly labels = NEEDS_YOU_KIND_LABELS;
   readonly tints = NEEDS_YOU_KIND_TINTS;
@@ -103,7 +104,11 @@ export class NeedsYouComponent implements OnInit, OnDestroy {
       this.tenantId = String( tenantId || '' );
       this.userId = String( user?.uid || '' );
       this.userEmail = String( user?.email || '' );
-      if ( this.tenantId ) void this.load();
+      // Auth emits more than once on arrival; load once per workspace and person.
+      const key = `${ this.tenantId }|${ this.userId }`;
+      if ( !this.tenantId || key === this.loadedFor ) return;
+      this.loadedFor = key;
+      void this.load();
     } );
   }
 
@@ -122,11 +127,13 @@ export class NeedsYouComponent implements OnInit, OnDestroy {
   async load (): Promise<void> {
     this.loading = true;
     try {
-      const response = await firstValueFrom( this.api.getSignalEngineBootstrap( this.opts ) );
+      // Only the threads that could be waiting on you (2026-11-23): the whole
+      // bootstrap took 10 seconds for the main workspace.
+      const response = await firstValueFrom( this.api.getNeedsYou( this.opts ) );
       const threads: MomentumThread[] = Array.isArray( response?.data?.threads ) ? response.data.threads : [];
       const pendingIds = new Set( ( this.pendingDone?.items || [] ).map( item => item.contactId ) );
       this.items = this.sorted( threads.filter( thread => ( isNeedsYou( thread ) || isDraftToApprove( thread ) ) && !pendingIds.has( thread.contactId ) ) );
-      this.planCount = threads.filter( thread => thread.userLane === 'plan' && !isNeedsYou( thread ) ).length;
+      this.planCount = await this.countPlan( response?.data?.planCount );
       this.count.set( this.items.length );
       this.error = '';
       const current = this.items.find( item => item.contactId === this.selectedId );
@@ -136,6 +143,19 @@ export class NeedsYouComponent implements OnInit, OnDestroy {
     } finally {
       this.loading = false;
     }
+  }
+
+  /**
+   * "Running N conversations" for the empty state. The server counts it when
+   * nothing is waiting; when everything it returned was a stalled handoff
+   * (not shown here), count from every thread instead.
+   */
+  private async countPlan ( serverCount: number | null | undefined ): Promise<number> {
+    if ( this.items.length ) return this.planCount;
+    if ( typeof serverCount === 'number' ) return serverCount;
+    const response = await firstValueFrom( this.api.getSignalEngineBootstrap( this.opts ) ).catch( () => null );
+    const threads: MomentumThread[] = Array.isArray( response?.data?.threads ) ? response.data.threads : [];
+    return threads.filter( thread => thread.userLane === 'plan' && !isNeedsYou( thread ) ).length;
   }
 
   /** Needs an answer, then drafts to approve (by company), then nothing to answer - newest reply first. */
