@@ -41,6 +41,7 @@ export class AppComponent implements OnInit {
   readonly isLoggedIn$ = this.authService.isLoggedIn();
   readonly userName$ = this.authService.getUser().pipe( map( user => user?.displayName || '' ) );
   readonly userEmail$ = this.authService.getUser().pipe( map( user => user?.email || '' ) );
+  readonly userId$ = this.authService.getUser().pipe( map( user => user?.uid || '' ) );
   private readonly needsYouCount = inject( NeedsYouCountService );
   readonly sidebarCounts$ = combineLatest( [this.needsYouCount.count$, this.needsYouCount.mail$] ).pipe(
     map( ( [count, mail] ) => ( { '/needs-you': count, '/drafts': mail.drafts, '/outbox': mail.outbox } ) )
