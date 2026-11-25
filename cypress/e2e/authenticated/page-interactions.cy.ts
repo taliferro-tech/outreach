@@ -263,6 +263,13 @@ describe('Maya settings', () => {
     cy.intercept('GET', '**/api/account/summary*', { statusCode: 200, body: { success: true, data: { writeAccess: { outreach: true } } } });
     cy.intercept({ method: 'GET', pathname: '/api/outreach/maya-settings' }, { statusCode: 200, body: { success: true, data: settings } }).as('settings');
     cy.intercept({ method: 'PUT', pathname: '/api/outreach/maya-settings' }, (req) => req.reply({ statusCode: 200, body: { success: true, data: { ...settings, ...req.body, autoSendSince: new Date().toISOString() } } })).as('save');
+    // Run the Marketing Assistant + Catalyst drafting duty (moved from the hub's Admin page, 2026-11-24).
+    cy.intercept({ method: 'GET', pathname: '/api/momentum/approval-policy' }, { statusCode: 200, body: { success: true, data: { approvalPolicy: {} } } });
+    cy.intercept({ method: 'GET', pathname: '/api/momentum/cockpit-activity' }, { statusCode: 200, body: { success: true, data: { items: [] } } }).as('activity');
+    cy.intercept({ method: 'GET', pathname: '/api/momentum/maya-batches/drafting-duty-time-presets' }, { statusCode: 200, body: { success: true, data: { presets: [
+      { key: 'now', label: 'Now (10 AM local)', simulatedNow: null },
+      { key: 'start_of_window', label: 'Start of window (6 AM local)', simulatedNow: '2026-11-24T14:00:00.000Z' },
+    ] } } }).as('presets');
   });
 
   it('shows what will stop her, and sets when her emails send', () => {
@@ -275,6 +282,22 @@ describe('Maya settings', () => {
     cy.wait('@save').its('request.body').should('deep.equal', { autoSendMode: 'noon' });
     cy.contains('.saved', 'It applies to drafts the Marketing Assistant writes from now on.');
     cy.contains('.note', 'Only drafts the Marketing Assistant writes from then on send by themselves');
+  });
+
+  it('runs the Marketing Assistant and Catalyst drafting duty for your workspace', () => {
+    cy.intercept({ method: 'POST', pathname: '/api/momentum/maya-batches/run' }, { statusCode: 200, body: { success: true, message: 'The Marketing Assistant run started and completed.', data: { runId: 'run-1', skipped: false, result: { selectedCount: 3, dailyDraftTarget: 100, mayaBatchId: '2026-11-24' } } } }).as('run');
+    cy.intercept({ method: 'POST', pathname: '/api/momentum/maya-batches/run-drafting-duty' }, { statusCode: 403, body: { success: false, error: 'APP_PURCHASE_REQUIRED', message: 'Running the Marketing Assistant needs the 16Ahead Suite or the Marketing Assistant app subscription.' } }).as('duty');
+    cy.loginAsTestUser('/maya-settings');
+    cy.wait('@settings', { timeout: 20000 });
+    cy.get('[data-cy="maya-run-no-activity"]').should('contain', 'No Marketing Assistant batch activity for your workspace yet');
+    cy.get('[data-cy="maya-run-now"]').click();
+    cy.wait('@run').its('request.body').should('have.property', 'tenantId');
+    cy.get('[data-cy="maya-run-status"]').should('contain', 'The Marketing Assistant run started and completed.');
+    cy.wait('@presets');
+    cy.get('[data-cy="maya-drafting-duty-time"]').select('Start of window (6 AM local)');
+    cy.get('[data-cy="maya-drafting-duty-run"]').click();
+    cy.wait('@duty').its('request.body').should('include', { simulatedNow: '2026-11-24T14:00:00.000Z', ignoreWindow: false });
+    cy.get('[data-cy="maya-drafting-duty-status"]').should('contain', 'needs the 16Ahead Suite or the Marketing Assistant app subscription');
   });
 
   it('is in the sidebar under Maya, and Drafts links to it', () => {

@@ -1,0 +1,49 @@
+<section class="settings-card" aria-labelledby="maya-run-title" data-cy="maya-run">
+  <div class="card-head">
+    <h2 id="maya-run-title">Run the Marketing Assistant</h2>
+    <div class="card-head__actions">
+      <button type="button" class="pill" data-cy="maya-run-stop" (click)="stopBatch()" [disabled]="!canStop()">
+        {{ stopBusy() ? 'Stopping…' : 'Stop the Marketing Assistant' }}
+      </button>
+      <button type="button" class="pill pill--blue" data-cy="maya-run-now" (click)="runBatch()" [disabled]="!canRun()">
+        {{ runBusy() ? 'Running…' : 'Run the Marketing Assistant now' }}
+      </button>
+    </div>
+  </div>
+  <p class="note">Runs today's batch for your workspace now instead of waiting for its start hour.</p>
+
+  <p class="note run-status" data-cy="maya-run-status" *ngIf="runStatus()" role="status">{{ runStatus() }}</p>
+
+  <!-- Latest run, tinted by its status. -->
+  <article class="run" *ngIf="latestRun() as run; else noActivity" [ngClass]="'run--' + run.tint" [attr.data-cy]="'maya-run-' + run.runId">
+    <div class="run__head">
+      <div class="run__text">
+        <h3 class="run__title">{{ run.headline || 'Marketing Assistant run' }}</h3>
+        <p class="run__meta">
+          <span *ngIf="run.startedAt">Started {{ run.startedAt | date:'shortTime' }} · </span>{{ run.triggerType || 'manual' }} run<span *ngIf="run.runType === 'drafting_duty'"> · hourly Catalyst drafting duty</span>
+        </p>
+        <p class="run__summary" *ngIf="run.summary">{{ run.summary }}</p>
+      </div>
+      <a class="pill pill--link" *ngIf="run.batchHref" [href]="run.batchHref" target="_blank" rel="noopener" [attr.data-cy]="'maya-run-open-batch-' + run.batchId">Open batch ↗</a>
+    </div>
+    <div class="phases" *ngIf="run.phases.length">
+      <div class="phase" *ngFor="let phase of run.phases" [title]="phase.detail">
+        <span class="phase__label"><span class="dot" [ngClass]="'dot--' + phase.tint"></span>{{ phase.label }}</span>
+        <span class="phase__time">{{ phase.occurredAt ? (phase.occurredAt | date:'h:mm:ss a') : 'Not yet' }}</span>
+      </div>
+    </div>
+    <div class="run__result" *ngIf="resultView() as result" data-cy="maya-run-result">
+      <span *ngIf="result.selectedLabel">{{ result.selectedLabel }}</span>
+      <span class="mono">Run {{ result.runId }}</span>
+      <span class="mono" *ngIf="result.batchId">Batch {{ result.batchId }}</span>
+      <a *ngIf="result.batchHref" [href]="result.batchHref" target="_blank" rel="noopener" data-cy="maya-run-open-latest-batch">Open this batch ↗</a>
+    </div>
+  </article>
+  <ng-template #noActivity>
+    <div class="empty" data-cy="maya-run-no-activity">
+      <ng-container *ngIf="runBusy()">The Marketing Assistant is running. The run appears here when it finishes.</ng-container>
+      <ng-container *ngIf="!runBusy() && activityLoading()">Loading the Marketing Assistant's latest run…</ng-container>
+      <ng-container *ngIf="!runBusy() && !activityLoading()">No Marketing Assistant batch activity for your workspace yet. Run the Marketing Assistant to start one.</ng-container>
+    </div>
+  </ng-template>
+</section>

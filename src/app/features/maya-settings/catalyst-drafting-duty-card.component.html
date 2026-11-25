@@ -1,0 +1,45 @@
+<section class="settings-card" aria-labelledby="drafting-duty-title" data-cy="maya-drafting-duty">
+  <div class="card-head">
+    <h2 id="drafting-duty-title">Catalyst drafting duty</h2>
+    <span class="tag">Hourly</span>
+  </div>
+
+  <div class="progress" *ngIf="draftingProgress() as progress">
+    <div class="progress__row">
+      <strong>{{ progress.label }}</strong>
+      <span class="progress__window">{{ progress.windowLabel }}</span>
+    </div>
+    <span class="bar"><span class="bar__fill" [style.width.%]="progress.percent"></span></span>
+  </div>
+
+  <div class="field">
+    <label class="field__label" for="draftingPretend">Pretend it's</label>
+    <div class="pretend">
+      <select id="draftingPretend" data-cy="maya-drafting-duty-time" [ngModel]="draftingSelectedPresetKey()" (ngModelChange)="draftingSelectedPresetKey.set($event)" [disabled]="presetsDisabled()">
+        <option *ngFor="let preset of draftingTimePresets()" [value]="preset.key">{{ preset.label }}</option>
+      </select>
+      <button class="iconbtn" type="button" data-cy="maya-drafting-duty-refresh-times" (click)="loadDraftingTimePresets()" [disabled]="draftingPresetsLoading() || !tenantId()" aria-label="Reload times">↻</button>
+    </div>
+    <p class="msg is-error" data-cy="maya-drafting-duty-presets-error" *ngIf="draftingPresetsError()">{{ draftingPresetsError() }}</p>
+  </div>
+
+  <div class="duty-actions">
+    <div class="duty-action">
+      <button type="button" class="pill pill--dark" data-cy="maya-drafting-duty-run" (click)="runDraftingDuty()" [disabled]="!canRunDraftingDuty()">
+        {{ draftingRunBusy() ? 'Running…' : 'Run drafting duty' }}
+      </button>
+      <span class="duty-action__help">Respects the window at the time above.</span>
+    </div>
+    <div class="duty-action">
+      <button type="button" class="pill" data-cy="maya-drafting-duty-force" (click)="forceDraftNow()" [disabled]="!canRunDraftingDuty()">Force draft now</button>
+      <span class="duty-action__help">Ignores the window. Drafts one chunk now.</span>
+    </div>
+  </div>
+
+  <p class="note" data-cy="maya-drafting-duty-status" *ngIf="draftingRunStatus()" role="status">{{ draftingRunStatus() }}</p>
+  <p class="note" *ngIf="draftingRunResult() as d" data-cy="maya-drafting-duty-result">
+    <ng-container *ngIf="d.skipped">Skipped: {{ d.reason || 'yes' }}. </ng-container>
+    <ng-container *ngIf="d.windowState as w">Local hour {{ w.localHour }} on {{ w.localDateKey }}; {{ w.shouldRunNow ? 'inside' : 'outside' }} the window. </ng-container>
+    <ng-container *ngIf="!d.skipped">Chunk size {{ d.chunkSize || 0 }}.</ng-container>
+  </p>
+</section>

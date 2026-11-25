@@ -49,6 +49,10 @@
 
     <app-outreach-limits-card></app-outreach-limits-card>
 
+    <!-- Run it now and Catalyst's hourly drafting, for your workspace (from the hub's Admin page, 2026-11-24). -->
+    <app-maya-run-card #runCard></app-maya-run-card>
+    <app-catalyst-drafting-duty-card (ran)="runCard.refreshActivity()"></app-catalyst-drafting-duty-card>
+
     <section class="settings-card" aria-labelledby="work-title">
       <h2 id="work-title">The Marketing Assistant's day</h2>
       <label class="row">

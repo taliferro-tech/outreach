@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Observable, finalize, shareReplay } from 'rxjs';
+import { Observable, finalize, map, shareReplay } from 'rxjs';
 import { LoggerService } from './logger.service';
 import { Campaign, CatalystRun, LeadVaultAudiencePreview } from '../models/email.model';
 import { Contact } from '../models/contact.model';
@@ -484,6 +484,42 @@ export interface SendingSettings {
 /** Maya's drafts: you approve each ("off"), unreviewed ones send at noon, or they send as soon as written. */
 export type MayaAutoSendMode = 'off' | 'noon' | 'immediate';
 
+/** One cockpit-activity row - todd-backend momentumRoutes.js /momentum/cockpit-activity. */
+export interface MayaActivityItem {
+  id?: string;
+  tenantId?: string;
+  type?: string;
+  status?: string;
+  message?: string;
+  detail?: string;
+  occurredAt?: string;
+  createdAt?: string;
+  actor?: string;
+  metadata?: Record<string, unknown>;
+  triggerType?: string;
+  sourceEntrypoint?: string;
+}
+
+export interface MayaDraftingTimePreset { key: string; label: string; simulatedNow: string | null; }
+
+/** POST /momentum/maya-batches/run-drafting-duty's data. */
+export interface MayaDraftingDutyResult {
+  skipped?: boolean;
+  reason?: string;
+  runId?: string;
+  windowState?: {
+    shouldRunNow?: boolean;
+    localHour?: number;
+    localDateKey?: string;
+    rangeStartHour?: number;
+    rangeEndHour?: number;
+    emailDraftingEnabled?: boolean;
+  } | null;
+  draftedSoFar?: number;
+  totalPlanned?: number;
+  chunkSize?: number;
+}
+
 export interface MayaSettings {
   enabled: boolean;
   emailDraftingEnabled: boolean;
@@ -793,6 +829,45 @@ export class OutreachApiService {
   updateMayaSettings ( patch: Partial<Pick<MayaSettings, 'autoSendMode' | 'enabled' | 'emailDraftingEnabled' | 'startHour'>>, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; data: MayaSettings; }> {
     const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
     return this.http.put<{ success: boolean; data: MayaSettings; }>( `${this.baseUrl}/outreach/maya-settings`, patch, { headers } );
+  }
+
+  // Run the Marketing Assistant on demand, and Catalyst's drafting duty (moved
+  // from the hub's Admin > Marketing Assistant page, 2026-11-24). The server
+  // runs them only for the caller's own workspace (the master may name any)
+  // and only with the Marketing Assistant or the 16Ahead Suite.
+
+  runMayaBatch ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; message?: string; data?: any; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.post<{ success: boolean; message?: string; data?: any; }>( `${this.baseUrl}/momentum/maya-batches/run`, { tenantId: opts.tenantId }, { headers } );
+  }
+
+  stopMayaBatch ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; message?: string; data?: any; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.post<{ success: boolean; message?: string; data?: any; }>( `${this.baseUrl}/momentum/maya-batches/stop`, { tenantId: opts.tenantId }, { headers } );
+  }
+
+  /** The Marketing Assistant's batch activity; includeAllStreams reads every surface (for one run). */
+  getMayaBatchActivity ( limit: number, includeAllStreams: boolean, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<MayaActivityItem[]> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    const params: Record<string, string> = { limit: String( limit ) };
+    if ( opts.tenantId ) params['tenantId'] = opts.tenantId;
+    if ( !includeAllStreams ) {
+      params['domains'] = 'momentum';
+      params['surfaces'] = 'daily-momentum';
+    }
+    return this.http.get<{ success: boolean; data?: { items?: MayaActivityItem[]; }; }>( `${this.baseUrl}/momentum/cockpit-activity`, { headers, params } ).pipe(
+      map( ( response ) => Array.isArray( response?.data?.items ) ? response.data!.items! : [] )
+    );
+  }
+
+  getMayaDraftingDutyTimePresets ( opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; message?: string; data?: { presets?: MayaDraftingTimePreset[]; }; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.get<{ success: boolean; message?: string; data?: { presets?: MayaDraftingTimePreset[]; }; }>( `${this.baseUrl}/momentum/maya-batches/drafting-duty-time-presets`, { headers, params: opts.tenantId ? { tenantId: opts.tenantId } : {} } );
+  }
+
+  runMayaDraftingDuty ( payload: { simulatedNow?: string; ignoreWindow?: boolean; }, opts: { tenantId?: string; userId?: string; userEmail?: string; } = {} ): Observable<{ success: boolean; message?: string; data?: MayaDraftingDutyResult; }> {
+    const headers = this.buildHeaders( opts.tenantId, opts.userId, opts.userEmail );
+    return this.http.post<{ success: boolean; message?: string; data?: MayaDraftingDutyResult; }>( `${this.baseUrl}/momentum/maya-batches/run-drafting-duty`, { ...payload, tenantId: opts.tenantId }, { headers } );
   }
 
   /** How often each address heard from us in the last 7 days, for Drafts (the contact cap). */

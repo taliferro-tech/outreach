@@ -1,0 +1,75 @@
+/* "Run the Marketing Assistant" and "Catalyst drafting duty" cards. Same card,
+   pill and note look as the rest of Marketing Assistant settings
+   (maya-settings.component.css, outreach-limits-card.component.css). */
+.settings-card { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: 20px; background: var(--surface); }
+.settings-card h2 { margin: 0; font-size: 20px; }
+.note { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.run-status { color: var(--text); font-weight: 600; }
+
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.card-head__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.pill { height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--bg); color: var(--text); font: 700 14px var(--font); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.pill--blue { background: var(--blue); color: #fff; }
+.pill--dark { background: var(--text); color: var(--bg); }
+.pill--link { height: 32px; padding: 0 14px; font-size: 13px; flex: none; }
+.pill:disabled { opacity: .5; cursor: default; }
+
+.tag { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 999px; background: var(--bg); color: var(--muted); font-size: 13px; font-weight: 700; }
+
+/* Latest run, tinted by its status. */
+.run { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px; border-radius: 16px; background: var(--bg); }
+.run--green { background: var(--t-green); }
+.run--blue { background: var(--t-blue); }
+.run--pink { background: var(--t-pink); }
+.run--yellow { background: var(--t-yellow); }
+.run__head { display: flex; align-items: flex-start; gap: 16px; }
+.run__text { flex: 1 1 auto; min-width: 0; }
+.run__title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.3; }
+.run__meta { margin: 4px 0 0; font-size: 14px; font-weight: 600; color: var(--muted); }
+.run--green .run__meta { color: var(--t-green-fg); }
+.run--blue .run__meta { color: var(--t-blue-fg); }
+.run--pink .run__meta { color: var(--t-pink-fg); }
+.run--yellow .run__meta { color: var(--t-yellow-fg); }
+.run__summary { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.run__result { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.run__result a { color: var(--text); font-weight: 700; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.phase { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px; background: var(--surface); }
+.phase__label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.phase__time { font-size: 13px; color: var(--muted); }
+.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.dot--green { background: var(--t-green-fg); }
+.dot--blue { background: var(--t-blue-fg); }
+.dot--pink { background: var(--t-pink-fg); }
+.dot--yellow { background: var(--t-yellow-fg); }
+
+.empty { padding: 14px 16px; border-radius: 14px; background: var(--bg); color: var(--muted); font-size: 14px; }
+
+/* Catalyst drafting duty */
+.progress { display: flex; flex-direction: column; gap: 8px; }
+.progress__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+.progress__window { font-size: 13px; color: var(--muted); }
+.bar { display: block; height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.bar__fill { display: block; height: 100%; border-radius: 999px; background: var(--blue); }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field__label { font-size: 14px; font-weight: 700; }
+.pretend { display: flex; gap: 8px; }
+.pretend select { flex: 1 1 auto; min-width: 0; height: 40px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--bg); color: var(--text); font: 700 14px var(--font); }
+.iconbtn { flex: none; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--bg); color: var(--text); font: 700 16px var(--font); cursor: pointer; }
+.iconbtn:disabled, .pretend select:disabled { opacity: .5; cursor: default; }
+
+.duty-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.duty-action { display: flex; flex-direction: column; gap: 6px; }
+.duty-action__help { font-size: 13px; color: var(--muted); }
+
+.msg { margin: 0; font-weight: 700; }
+.msg.is-error { color: var(--t-pink-fg); }
+
+@media (max-width: 700px) {
+  .duty-actions { grid-template-columns: minmax(0, 1fr); }
+  .run__head { flex-wrap: wrap; }
+}
