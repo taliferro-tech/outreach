@@ -510,6 +510,7 @@
 .arrive__step.is-current .arrive__chip[data-kind="required"] { background: var(--bg); }
 .arrive__chip[data-kind="done"] { background: var(--t-green); color: var(--t-green-fg); }
 .arrive__chip[data-kind="optional"] { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--surface2); }
+.arrive__actions { display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .arrive__step .pill { background: var(--bg); color: var(--text); border: 0; font: 600 15px/1 var(--font); cursor: pointer; }
 .arrive__step .pill.pill--dark { background: var(--text); color: var(--bg); font-weight: 700; }
 

@@ -1,0 +1,50 @@
+<section class="settings-card" [id]="anchor" aria-labelledby="bulk-sending-title" data-cy="bulk-sending">
+  <div class="card-head">
+    <h2 id="bulk-sending-title">Bulk sending</h2>
+    <span class="tag">SendGrid</span>
+  </div>
+
+  <p class="note" *ngIf="loading() && !state()">Checking your bulk sending…</p>
+  <p class="msg is-error" *ngIf="loadError()" role="alert" data-cy="bulk-sending-load-error">{{ loadError() }}</p>
+
+  <ng-container *ngIf="!loading() || state()">
+    <div class="bulk-status" *ngIf="!loadError()" [ngClass]="'bulk-status--' + view().tint" data-cy="bulk-sending-status">
+      <strong>{{ view().label }}</strong>
+      <span>{{ view().detail }}</span>
+    </div>
+  </ng-container>
+
+  <p class="msg is-ok" *ngIf="submitted()" role="status" data-cy="bulk-sending-submitted">{{ submitted() }}</p>
+
+  <div *ngIf="showRequestButton()">
+    <button type="button" class="pill pill--blue" appWriteAction="request bulk sending" (click)="openForm()" data-cy="bulk-sending-request">Request bulk sending</button>
+  </div>
+
+  <form class="bulk-form" *ngIf="formOpen()" (ngSubmit)="submit()" novalidate data-cy="bulk-sending-form">
+    <label class="field">
+      <span class="field__label">Sender email</span>
+      <input class="text-input" type="email" name="senderEmail" autocomplete="email" required
+             [class.is-invalid]="emailInvalid()" [ngModel]="senderEmail()" (ngModelChange)="setEmail($event)" [disabled]="sending()"
+             placeholder="you@yourcompany.com" data-cy="bulk-sending-email">
+      <small class="field__help">Campaigns and drips come from this address.</small>
+    </label>
+    <label class="field">
+      <span class="field__label">Sender domain</span>
+      <input class="text-input" type="text" name="domain" required
+             [ngModel]="domain()" (ngModelChange)="setDomain($event)" [disabled]="sending()"
+             placeholder="yourcompany.com" data-cy="bulk-sending-domain">
+    </label>
+    <label class="field">
+      <span class="field__label">Notes <small>(optional)</small></span>
+      <textarea class="text-area" name="notes" rows="3" [ngModel]="notes()" (ngModelChange)="notes.set($event)" [disabled]="sending()"
+                placeholder="Anything the 16Ahead team should know" data-cy="bulk-sending-notes"></textarea>
+    </label>
+    <p class="msg is-error" *ngIf="submitError()" role="alert" data-cy="bulk-sending-error">{{ submitError() }}</p>
+    <div class="bulk-form__actions">
+      <button type="submit" class="pill pill--blue" appWriteAction="request bulk sending" [disabled]="!canSubmit()" data-cy="bulk-sending-submit">
+        {{ sending() ? 'Sending…' : 'Submit' }}
+      </button>
+      <button type="button" class="pill" (click)="cancel()" [disabled]="sending()">Cancel</button>
+    </div>
+  </form>
+</section>

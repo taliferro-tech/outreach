@@ -24,7 +24,10 @@
             </div>
             @if (showAction(step)) {
               @if (step.id === 'bulkSending') {
-                <button type="button" class="sc-action" appWriteAction="set bulk sending aside" (click)="dismissBulk()">{{ service.actionFor(step) }}</button>
+                <span class="sc-actions">
+                  <a class="sc-action" routerLink="/maya-settings" fragment="bulk-sending" (click)="isOpen.set(false)" data-cy="setup-bulk-request">Request</a>
+                  <button type="button" class="sc-action" appWriteAction="set bulk sending aside" (click)="dismissBulk()">{{ service.actionFor(step) }}</button>
+                </span>
               } @else {
                 <a class="sc-action" [routerLink]="service.routeFor(step)" [queryParams]="service.queryParamsFor(step)">{{ service.actionFor(step) }}</a>
               }

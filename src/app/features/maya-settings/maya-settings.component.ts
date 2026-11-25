@@ -12,6 +12,7 @@ import { PreloaderComponent } from '../../shared/preloader/preloader.component';
 import { OutreachLimitsCardComponent } from './outreach-limits-card.component';
 import { MayaRunCardComponent } from './maya-run-card.component';
 import { CatalystDraftingDutyCardComponent } from './catalyst-drafting-duty-card.component';
+import { BulkSendingCardComponent } from './bulk-sending-card.component';
 import { MOVES_TASKS_URL } from '../../shared/utils/activity-action.util';
 
 /**
@@ -24,7 +25,7 @@ import { MOVES_TASKS_URL } from '../../shared/utils/activity-action.util';
 @Component( {
   selector: 'app-maya-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BrowseNoticeComponent, WriteActionDirective, PreloaderComponent, OutreachLimitsCardComponent, MayaRunCardComponent, CatalystDraftingDutyCardComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BrowseNoticeComponent, WriteActionDirective, PreloaderComponent, OutreachLimitsCardComponent, MayaRunCardComponent, CatalystDraftingDutyCardComponent, BulkSendingCardComponent],
   templateUrl: './maya-settings.component.html',
   styleUrls: ['../../shared/mail/mail-page.css', './maya-settings.component.css'],
 } )

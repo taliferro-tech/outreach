@@ -1,0 +1,22 @@
+/* "Bulk sending" card. Card, pill, tag, field and msg come from maya-run-cards.css;
+   inputs match the Limits and copies card (outreach-limits-card.component.css). */
+.bulk-status { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 16px; background: var(--bg); font-size: 14px; color: var(--muted); }
+.bulk-status strong { font-size: 17px; color: var(--text); line-height: 1.3; }
+.bulk-status--green { background: var(--t-green); color: var(--t-green-fg); }
+.bulk-status--yellow { background: var(--t-yellow); color: var(--t-yellow-fg); }
+.bulk-status--pink { background: var(--t-pink); color: var(--t-pink-fg); }
+
+.bulk-form { display: flex; flex-direction: column; gap: 12px; }
+.bulk-form__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.field__help { font-size: 13px; color: var(--muted); }
+.field__label small { font-weight: 400; color: var(--muted); }
+
+.text-input, .text-area { display: block; width: 100%; padding: 0 16px; border: 2px solid transparent; background: var(--bg); color: var(--text); font: inherit; font-size: 15px; }
+.text-input { height: 46px; border-radius: 999px; }
+.text-area { padding: 12px 16px; border-radius: 18px; resize: vertical; min-height: 80px; }
+.text-input:focus, .text-area:focus { outline: none; border-color: var(--blue); }
+.text-input::placeholder, .text-area::placeholder { color: var(--muted); opacity: .9; }
+.text-input.is-invalid { border-color: var(--t-pink-fg); }
+.text-input:disabled, .text-area:disabled { opacity: .6; }
+
+.msg.is-ok { color: var(--t-green-fg); }

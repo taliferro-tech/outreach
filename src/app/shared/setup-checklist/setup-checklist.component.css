@@ -111,6 +111,7 @@
   cursor: pointer;
 }
 
+.sc-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .sc-action:hover { background: var(--surface2); color: var(--text); }
 
 /* Leave room for the app name beside the section nav. */

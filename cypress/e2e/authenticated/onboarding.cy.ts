@@ -48,6 +48,7 @@ describe( 'Outreach onboarding', () => {
     cy.get( '[data-cy="arrive-step"]' ).should( 'have.length', 4 ).first().should( 'have.class', 'is-current' )
       .and( 'contain.text', 'Required' ).and( 'contain.text', 'Nothing sends without this.' );
     cy.get( '[data-cy="arrive-step"]' ).eq( 3 ).should( 'contain.text', 'Optional' ).and( 'contain.text', 'Not now' );
+    cy.get( '[data-cy="arrive-action-bulkSending"]' ).should( 'contain.text', 'Request' ).and( 'have.attr', 'href', '/maya-settings#bulk-sending' );
     cy.get( '[data-cy="arrive-action-connectInbox"]' ).should( 'have.attr', 'href', '/inbox-access' );
     cy.screenshot( 'onboarding/arrive', { capture: 'viewport' } );
 

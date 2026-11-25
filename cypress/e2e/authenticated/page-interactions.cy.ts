@@ -270,6 +270,35 @@ describe('Maya settings', () => {
       { key: 'now', label: 'Now (10 AM local)', simulatedNow: null },
       { key: 'start_of_window', label: 'Start of window (6 AM local)', simulatedNow: '2026-11-24T14:00:00.000Z' },
     ] } } }).as('presets');
+    // Bulk sending card (2026-11-24): nothing requested yet; the connected inbox is the default sender.
+    cy.intercept({ method: 'GET', pathname: '/api/outreach/provisioning' }, { statusCode: 200, body: { success: true, data: { provisioningStatus: 'not_requested', senderEmail: '', domain: '', notes: '' } } }).as('provisioning');
+    cy.intercept({ method: 'GET', pathname: '/api/outreach/mailboxes' }, { statusCode: 200, body: { success: true, message: '', data: [{ id: 'm1', emailAddress: 'ty@acme.com', isPrimary: true, status: 'connected' }] } });
+  });
+
+  it('requests bulk sending and shows it waiting for approval', () => {
+    cy.intercept({ method: 'POST', pathname: '/api/outreach/provisioning/request' }, (req) => req.reply({ statusCode: 200, body: { success: true, data: { tenantId: 't1', provisioningStatus: 'requested', senderEmail: req.body.senderEmail, domain: req.body.domain, requestedAt: '2026-11-24T18:00:00.000Z' } } })).as('request');
+    cy.loginAsTestUser('/maya-settings#bulk-sending');
+    cy.wait('@provisioning', { timeout: 20000 });
+    cy.get('[data-cy="bulk-sending-status"]').should('contain', 'Not requested');
+    cy.get('[data-cy="bulk-sending-request"]').click();
+    cy.get('[data-cy="bulk-sending-email"]').should('have.value', 'ty@acme.com');
+    cy.get('[data-cy="bulk-sending-domain"]').should('have.value', 'acme.com');
+    cy.get('[data-cy="bulk-sending-email"]').clear().type('not-an-email');
+    cy.get('[data-cy="bulk-sending-submit"]').should('be.disabled');
+    cy.get('[data-cy="bulk-sending-email"]').clear().type('news@acme.com');
+    cy.get('[data-cy="bulk-sending-notes"]').type('Launch week');
+    cy.get('[data-cy="bulk-sending-submit"]').click();
+    cy.wait('@request').its('request.body').should('include', { senderEmail: 'news@acme.com', domain: 'acme.com', notes: 'Launch week' });
+    cy.get('[data-cy="bulk-sending-status"]').should('contain', 'Waiting for approval (requested Nov');
+    cy.get('[data-cy="bulk-sending-request"]').should('not.exist');
+  });
+
+  it('shows an approved sender', () => {
+    cy.intercept({ method: 'GET', pathname: '/api/outreach/provisioning' }, { statusCode: 200, body: { success: true, data: { provisioningStatus: 'provisioned', senderEmail: 'news@acme.com' } } }).as('provisioning');
+    cy.loginAsTestUser('/maya-settings');
+    cy.wait('@provisioning', { timeout: 20000 });
+    cy.get('[data-cy="bulk-sending-status"]').should('contain', 'Approved — sending from news@acme.com');
+    cy.get('[data-cy="bulk-sending-request"]').should('not.exist');
   });
 
   it('shows what will stop her, and sets when her emails send', () => {

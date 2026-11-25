@@ -11,6 +11,9 @@
 // registered interceptor first).
 beforeEach(() => {
   cy.intercept('https://api.taliferro.tech/api/**', { statusCode: 200, body: {} });
+  // Bulk sending card (Marketing Assistant settings) and anything else that
+  // reads the workspace's SendGrid provisioning: nothing requested yet.
+  cy.intercept({ method: 'GET', url: 'https://api.taliferro.tech/api/outreach/provisioning*' }, { statusCode: 200, body: { success: true, data: { provisioningStatus: 'not_requested', senderEmail: '', domain: '', notes: '' } } });
 });
 
 declare global {

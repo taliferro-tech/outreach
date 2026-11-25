@@ -17,7 +17,10 @@
         <span>{{ stepWhy(step) }}</span>
       </div>
       <ng-container *ngIf="showsStepAction(step)">
-        <button *ngIf="step.id === 'bulkSending'; else stepLink" type="button" class="pill" appWriteAction="set bulk sending aside" (click)="dismissBulk()">Not now</button>
+        <span class="arrive__actions" *ngIf="step.id === 'bulkSending'; else stepLink">
+          <a class="pill pill--dark" routerLink="/maya-settings" fragment="bulk-sending" data-cy="arrive-action-bulkSending">Request</a>
+          <button type="button" class="pill" appWriteAction="set bulk sending aside" (click)="dismissBulk()">Not now</button>
+        </span>
         <ng-template #stepLink>
           <a class="pill" [class.pill--dark]="isCurrentStep(step)" [routerLink]="setup.routeFor(step)" [queryParams]="setup.queryParamsFor(step)"
              [attr.data-cy]="'arrive-action-' + step.id">{{ setup.actionFor(step) }}</a>
