@@ -1,6 +1,6 @@
 {
   "name": "outreach",
-  "version": "2026.11.24-build.4",
+  "version": "2026.11.24-build.6",
   "scripts": {
     "auth:ui": "npx google-artifactregistry-auth",
     "ng": "ng",
