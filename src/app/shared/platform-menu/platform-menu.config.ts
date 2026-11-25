@@ -19,6 +19,7 @@ export const PLATFORM_MENU_CONFIG: MenuAppConfig = {
   ],
   secondaryItems: [
     { label: 'Profile', icon: 'user', route: '/profile' },
+    { label: 'Settings', icon: 'settings', route: '/maya-settings', keywords: 'bulk sending sendgrid request limits bcc marketing assistant run catalyst' },
     { label: 'Help', icon: 'help', route: '/help' },
     { label: 'About', icon: 'info', route: '/about' },
     { label: 'iOS App', icon: 'phone', route: '/ios', keywords: 'iphone ipad app store' },
